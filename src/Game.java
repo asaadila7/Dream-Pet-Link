@@ -10,6 +10,8 @@ class Game {
     private GameState state;
     private long startTime, pauseTime;
     private int pairsLeft;
+    Point [] hint;
+    int hintsLeft;
 
     public Game () {
         level = 1;
@@ -26,14 +28,7 @@ class Game {
             }
         }
 
-        //shuffle tiles
-        for (int i = 0; i < 40; i++) {
-            Point tile1 = new Point ((int) (Math.random () * 14), (int) (Math.random () * 10));
-            Point tile2 = new Point ((int) (Math.random () * 14), (int) (Math.random () * 10));
-            Tile temp = board [tile1.y] [tile1.x];
-            board [tile1.y] [tile1.x] = board [tile2.y] [tile2.x];
-            board [tile2.y] [tile2.x] = temp;
-        }
+        shuffle ();
     }
 
     static class Tile {
@@ -112,33 +107,153 @@ class Game {
         return GameState.WON_LEVEL;
     }
 
-    //no matches left, hints, board shifting, time
+    //hints, board shifting
 
     public boolean hasMatches () {
-        
+        for (int i = 0; i < 140; i++) {
+            for (int j = i + 1; j < 140; j++) {
+                Point tile1 = new Point (i / 14, i % 14);
+                Point tile2 = new Point (j / 14, j % 14);
+                if (board [tile1.y] [tile1.x].equals (board [tile2.y] [tile2.x]) && match (tile1, tile2) != null) {
+                    this.hint = new Point [] {tile1, tile2};
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
-    public void alignRightAndLeft () {
-        
+    public void shuffle () {
+        for (int i = 0; i < pairsLeft; i++) {
+            switchTiles (nthTile (random (0, pairsLeft - 1)), nthTile (random (pairsLeft, pairsLeft * 2 - 1)))
+        }
+
+        if (hasMatches ()) return;
+        shuffle ();
     }
 
-    public void alignUpAndDown () {
+    private static int random (int min, int max) {
+        return (int) (Math.random () * (max - min + 1) + min);
+    }
+
+    //returns nth non empty tile
+    private Point nthTile (int index) {
+        int count = -1;
+
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 14; j++) {
+                if (board [i] [j] != null) {
+                    count++;
+                    if (count == index) return new Point (j, i);
+                }
+            }
+        }
+
+        return new Point (-1, -1);
+    }
+
+    private void switchTiles (Point tile1, Point tile2) {
+        Tile temp = board [tile1.y] [tile1.x];
+        board [tile1.y] [tile1.x] = board [tile2.y] [tile2.x];
+        board [tile2.y] [tile2.x] = temp;
+    }
+
+    public void alignTiles (int level) {
+        switch (level) {
+            case 3:
+                alignUpAndDown();
+                break;
+            case 4:
+                alignRightAndLeft();
+                break;
+            case 5:
+                alignLeft(false);
+                break;
+            case 6:
+                alignDown(false);
+                break;
+            case 7:
+                alignUp(false);
+                break;
+            case 8:
+                alignRight(false);
+                break;
+            case 9:
+                alignMiddle ();
+        }
+    }
+
+    private void alignRightAndLeft () {
+        alignRight (true);
+        alignLeft (true);
+    }
+
+    private void alignUpAndDown () {
+        alignDown (true);
+        alignUp (true);
+    }
+
+    public void align (Direction direction, boolean half) {
+        int horizontalBound = 14, verticalBound = 10;
+        if (half) {
+            
+        }
+    }
+
+    private void alignRight (boolean half) {
+        int bound = half ? 7 : 14;
+
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < bound; j++) {
+                if (board [i] [j] == null) {
+                    boolean hasMoreTiles = false;
+
+                    for (int k = j + 1; k < bound; k++) {
+                        if (board [i] [k] != null) {
+                            switchTiles (new Point (j, i), new Point (k, i));
+                            hasMoreTiles = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasMoreTiles) break;
+                }
+            }
+        }
+    }
+
+    private void alignLeft (boolean half) {
+        int bound = half ? 6 : -1;
+
+        for (int i = 0; i < 10; i++) {
+            for (int j = 13; j > bound; j--) {
+                if (board [i] [j] == null) {
+                    boolean hasMoreTiles = false;
+
+                    for (int k = j - 1; k > bound; k--) {
+                        if (board [i] [k] != null) {
+                            switchTiles (new Point (j, i), new Point (k, i));
+                            hasMoreTiles = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasMoreTiles) break;
+                }
+            }
+        }
+    }
+
+    private void alignUp (boolean half) {
 
     }
 
-    public void alignRight () {
+    private void alignDown (boolean half) {
 
     }
 
-    public void alignLeft () {
-
-    }
-
-    public void alignUp () {
-
-    }
-
-    public void alignDown () {
+    private void alignMiddle () {
 
     }
 
@@ -154,15 +269,9 @@ class Game {
         }
     }
 
+    //keep track of matches made and give time bonus
     public ArrayList <Step> match (Point tile1, Point tile2) {
-        ArrayList <Step> path = match (tile1, tile2, new ArrayList <Step> ());
-
-        if (path != null) {
-            startTime += 1000;
-            pairsLeft--;
-        }
-
-        return path;
+        return match (tile1, tile2, new ArrayList <Step> ());
     }
 
     private ArrayList <Step> match (Point curPos, Point tile2, ArrayList <Step> history) {
