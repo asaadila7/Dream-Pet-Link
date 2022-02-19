@@ -168,37 +168,38 @@ class Game {
                 alignRightAndLeft();
                 break;
             case 5:
-                alignLeft(false);
+                alignLeft();
                 break;
             case 6:
-                alignDown(false);
+                alignDown();
                 break;
             case 7:
-                alignUp(false);
+                alignUp();
                 break;
             case 8:
-                alignRight(false);
+                alignRight();
                 break;
             case 9:
                 alignMiddle ();
         }
     }
 
-    private void alignRightAndLeft () {
-        alignRight (true);
-        alignLeft (true);
-    }
-
-    private void alignUpAndDown () {
-        alignDown (true);
-        alignUp (true);
-    }
-
+    //crammed everything into one function because of the repetition but might low abstraction
+    //NOTE: will align to opposite direction passed
     public void align (Direction direction, boolean half) {
-        int horizontalBound = 14, verticalBound = 10;
-        if (half) {
-            
-        }
+        int halfInt = half ? 2 : 1;
+        int xSignum = direction.x == -1 ? -1 : 1;
+        int ySignum = direction.y == -1 ? -1 : 1;
+        int verticalStart = direction.y == -1 ? 9 : 0;
+        int horizontalStart = direction.x == -1 ? 13 : 0;
+        int verticalBound = verticalStart + direction.y * 10 / halfInt;
+        int horizontalBound = horizontalStart + direction.y * 14 / halfInt;
+        //0
+        
+        //right: (x: 1, y: 0) : 
+        //left: (x: -1, y: 0)
+        //up: (x: 0, y: -1)
+        //down: (x: 0, y: 1)
     }
 
     private void alignRight (boolean half) {
@@ -245,14 +246,6 @@ class Game {
         }
     }
 
-    private void alignUp (boolean half) {
-
-    }
-
-    private void alignDown (boolean half) {
-
-    }
-
     private void alignMiddle () {
 
     }
@@ -271,6 +264,7 @@ class Game {
 
     //keep track of matches made and give time bonus
     public ArrayList <Step> match (Point tile1, Point tile2) {
+        if (board [tile1.y] [tile1.x].equals (board [tile2.y] [tile2.x])) return null;
         return match (tile1, tile2, new ArrayList <Step> ());
     }
 
@@ -283,7 +277,7 @@ class Game {
         for (Direction direction : Direction.values()) {
             ArrayList <Step> newPath = match (newPos (curPos, direction), tile2, addStep (history, direction));
 
-            if (newPath != null && (path == null || length (newPath) > length (path))) {
+            if (newPath != null && (path == null || path.size () > newPath.size () || (path.size () == newPath.size () && length (newPath) < length (path)))) {
                 path = newPath;
             }
         }
