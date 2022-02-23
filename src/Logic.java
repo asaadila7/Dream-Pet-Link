@@ -3,7 +3,12 @@ import java.io.File;
 import java.awt.*;
 import java.util.ArrayList;
 
-class Game {
+//change the shuffle method to shuffle only until a match is available
+//random shuffling (vs switching in order)
+//cache matches found before to prevent having to check multiple times to find the same matches
+//will have to check whether those matches are still valid tho
+
+class Logic {
     //40 type of tiles , 14 x 10 board
     private int level;
     private Tile board [] [];
@@ -13,7 +18,7 @@ class Game {
     Point [] hint;
     int hintsLeft;
 
-    public Game () {
+    public Logic () {
         level = 1;
         board = new Tile [10] [14];
         state = GameState.PLAYING;
@@ -28,7 +33,7 @@ class Game {
             }
         }
 
-        shuffle ();
+        shuffle (70);
     }
 
     static class Tile {
@@ -68,8 +73,8 @@ class Game {
         return level;
     }
 
-    public int getTile (Point tile) {
-        return board [tile.y] [tile.x].type;
+    public int getTileType (Point tile) {
+        return getTile (tile).type;
     }
 
     public GameState getState () {
@@ -107,14 +112,18 @@ class Game {
         return GameState.WON_LEVEL;
     }
 
-    //hints, board shifting
+    //hints?
+
+    private Tile getTile (Point point) {
+        return board [point.y] [point.x];
+    }
 
     public boolean hasMatches () {
         for (int i = 0; i < 140; i++) {
             for (int j = i + 1; j < 140; j++) {
                 Point tile1 = new Point (i / 14, i % 14);
                 Point tile2 = new Point (j / 14, j % 14);
-                if (board [tile1.y] [tile1.x].equals (board [tile2.y] [tile2.x]) && match (tile1, tile2) != null) {
+                if (getTile (tile1).equals (getTile (tile2)) && match (tile1, tile2) != null) {
                     this.hint = new Point [] {tile1, tile2};
                     return true;
                 }
@@ -125,11 +134,16 @@ class Game {
     }
 
     public void shuffle () {
-        for (int i = 0; i < pairsLeft; i++) {
-            switchTiles (nthTile (random (0, pairsLeft - 1)), nthTile (random (pairsLeft, pairsLeft * 2 - 1)))
-        }
+        while (!hasMatches ()) switchRandom ();
+    }
 
-        if (hasMatches ()) return;
+    public void switchRandom () {
+        switchTiles (nthTile (random (0, pairsLeft * 2 - 1)), nthTile (random (0, pairsLeft * 2 - 1)));
+    }
+
+    public void shuffle (int minRepetitions) {
+        for (int i = 0; i < minRepetitions; i++) switchRandom ();
+
         shuffle ();
     }
 
@@ -143,7 +157,7 @@ class Game {
 
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 14; j++) {
-                if (board [i] [j] != null) {
+                if (getTile (new Point (j, i)) != null) {
                     count++;
                     if (count == index) return new Point (j, i);
                 }
@@ -154,64 +168,58 @@ class Game {
     }
 
     private void switchTiles (Point tile1, Point tile2) {
-        Tile temp = board [tile1.y] [tile1.x];
-        board [tile1.y] [tile1.x] = board [tile2.y] [tile2.x];
+        Tile temp = getTile (tile1);
+        board [tile1.y] [tile1.x] = getTile (tile2);
         board [tile2.y] [tile2.x] = temp;
     }
 
+    //NOTE: alignVertical and alignHorizontal are very similar
     public void alignTiles (int level) {
         switch (level) {
             case 3:
-                alignUpAndDown();
+                alignUp (true);
+                alignDown (true);
                 break;
             case 4:
-                alignRightAndLeft();
+                alignRight (true);
+                alignLeft (true);
                 break;
             case 5:
-                alignLeft();
+                alignLeft (false);
                 break;
             case 6:
-                alignDown();
+                alignDown (false);
                 break;
             case 7:
-                alignUp();
+                alignUp (false);
                 break;
             case 8:
-                alignRight();
+                alignRight (false);
                 break;
             case 9:
                 alignMiddle ();
         }
     }
 
-    //crammed everything into one function because of the repetition but might low abstraction
-    //NOTE: will align to opposite direction passed
-    public void align (Direction direction, boolean half) {
-        int halfInt = half ? 2 : 1;
-        int xSignum = direction.x == -1 ? -1 : 1;
-        int ySignum = direction.y == -1 ? -1 : 1;
-        int verticalStart = direction.y == -1 ? 9 : 0;
-        int horizontalStart = direction.x == -1 ? 13 : 0;
-        int verticalBound = verticalStart + direction.y * 10 / halfInt;
-        int horizontalBound = horizontalStart + direction.y * 14 / halfInt;
-        //0
-        
-        //right: (x: 1, y: 0) : 
-        //left: (x: -1, y: 0)
-        //up: (x: 0, y: -1)
-        //down: (x: 0, y: 1)
+    private void alignLeft (boolean half) {
+        alignHorizontal (0, half ? 7 : 14);
     }
 
     private void alignRight (boolean half) {
-        int bound = half ? 7 : 14;
+        alignHorizontal (13, half ? 6 : -1);
+    }
+
+    //not the method's responsibility to check that the start and end values are valid
+    private void alignHorizontal (int start, int end) {
+        int direction = (int) Math.signum (end - start);
 
         for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < bound; j++) {
-                if (board [i] [j] == null) {
+            for (int j = start; j - end != 0; j += direction) {
+                if (getTile (new Point (j, i)) == null) {
                     boolean hasMoreTiles = false;
 
-                    for (int k = j + 1; k < bound; k++) {
-                        if (board [i] [k] != null) {
+                    for (int k = j + direction; k - end != 0; k += direction) {
+                        if (getTile (new Point (k, i)) != null) {
                             switchTiles (new Point (j, i), new Point (k, i));
                             hasMoreTiles = true;
                             break;
@@ -224,16 +232,25 @@ class Game {
         }
     }
 
-    private void alignLeft (boolean half) {
-        int bound = half ? 6 : -1;
+    private void alignUp (boolean half) {
+        alignVertical (0, half ? 5 : 10);
+    }
 
-        for (int i = 0; i < 10; i++) {
-            for (int j = 13; j > bound; j--) {
-                if (board [i] [j] == null) {
+    private void alignDown (boolean half) {
+        alignVertical (9, half ? 4 : -1);
+    }
+
+    //not the method's responsibility to check that the start and end values are valid
+    private void alignVertical (int start, int end) {
+        int direction = (int) Math.signum (end - start);
+
+        for (int i = 0; i < 14; i++) {
+            for (int j = start; j - end != 0; j += direction) {
+                if (getTile (new Point (i, j)) == null) {
                     boolean hasMoreTiles = false;
 
-                    for (int k = j - 1; k > bound; k--) {
-                        if (board [i] [k] != null) {
+                    for (int k = j + direction; k - end != 0; k += direction) {
+                        if (getTile (new Point (i, k)) != null) {
                             switchTiles (new Point (j, i), new Point (k, i));
                             hasMoreTiles = true;
                             break;
@@ -247,7 +264,69 @@ class Game {
     }
 
     private void alignMiddle () {
+        ArrayList <Point> holes = findHoles ();
 
+        while (holes.size () != 0) {
+            for (Point point : holes) {
+                //will pick horizontal align over vertical align if both are the same
+                if (Math.abs (4.5 - point.y) / 5 < Math.abs (6.5 - point.x) / 7) {
+                    if (point.y < 5) alignVertical (point.y, 0);
+                    else alignVertical (point.y, 10);
+                } else {
+                    if (point.x < 7) alignHorizontal (point.x, 0);
+                    else alignHorizontal (point.x, 14);
+                }
+            }
+
+            holes = findHoles ();
+        }
+    }
+
+    //returns outermost gap
+        private ArrayList <Point> findHoles () {
+        ArrayList <Point> holes = new ArrayList <Point> ();
+
+        for (int i = 0; i < 10; i++) {
+            ArrayList <Point> outerRing = nthOuterRing (i);
+
+            for (Point point : outerRing) {
+                if (hole (point)) holes.add (point);
+            }
+        }
+
+        return holes;
+    }
+
+    private boolean hole (Point point) {
+        if (getTile (point) != null) return false;
+
+        int count = 0;
+
+        for (Direction direction: Direction.values ()) {
+            Point step = new Point (point.x + direction.x, point.y + direction.y);
+            if (invalidPos (step) || getTile (step) == null) count++;
+            if (count >= 3) return true;
+        }
+
+        return false;
+    }
+
+    private ArrayList <Point> nthOuterRing (int n) {
+        ArrayList <Point> ring = new ArrayList <Point> ();
+
+        for (int j = n; j < 10 - n; j += 9 - 2 * n) {
+            for (int i = n; i < 14 - n; i++) {
+                ring.add (new Point (i, j));
+            }
+        }
+
+        for (int j = n; j < 14 - n; j += 13 - 2 * n) {
+            for (int i = n + 1; i < 10 - n - 1; i++) {
+                ring.add (new Point (j, i));
+            }
+        }
+
+        return ring;
     }
 
     public void pause () {
@@ -264,7 +343,7 @@ class Game {
 
     //keep track of matches made and give time bonus
     public ArrayList <Step> match (Point tile1, Point tile2) {
-        if (board [tile1.y] [tile1.x].equals (board [tile2.y] [tile2.x])) return null;
+        if (getTile (tile1).equals (getTile (tile2))) return null;
         return match (tile1, tile2, new ArrayList <Step> ());
     }
 
@@ -294,7 +373,7 @@ class Game {
 
         if (xOnBorder ^ yOnBorder) return true;
 
-        if (!(xOnBorder || yOnBorder) && board [pos.y] [pos.x] == null) return true;
+        if (!(xOnBorder || yOnBorder) && getTile (pos) == null) return true;
 
         return false;
     }
