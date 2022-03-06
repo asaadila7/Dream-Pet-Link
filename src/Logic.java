@@ -1,40 +1,55 @@
 import java.util.ArrayList;
 import java.awt.Point;
 
-//change the shuffle method to shuffle only until a match is available
-//random shuffling (vs switching in order)
 //cache matches found before to prevent having to check multiple times to find the same matches
 //will have to check whether those matches are still valid tho
 
 class Logic {
     //40 type of tiles , 14 x 10 board
+    public final static long MAX_TIME = 600000L;
     private int level;
     private int board [] [];
     private GameState state;
     private long startTime, pauseTime;
     private int pairsLeft;
-    Point [] hint;
-    int hintsLeft;
+    private int height, width;
+    private int tileTypes;
+    private Point [] hint;
 
-    public Logic (int tileTypes) {
+    public Logic (int tileTypes, int height, int width) {
         level = 1;
-        board = new int [10] [14];
-        state = GameState.PLAYING;
-        startTime = pauseTime = System.currentTimeMillis ();
-        pairsLeft = 70;
+        board = new int [height] [width];
+        this.tileTypes = tileTypes;
+    }
+
+    private void assertPlaying () {
+        if (state != GameState.PLAYING) throw new Error ("Invalid Game State: should be playing"); //generic error?
+    }
+
+    public void setUpLevel () {
+        if (state == GameState.PAUSED || state == GameState.PLAYING || state == GameState.OVER || state == GameState.WON_GAME) {
+            throw new Error ("Cannot start level: invalid game state");
+        }
+
+        pairsLeft = height * width / 2;
 
         //initialize board to have an equal amount of each tile (as much as possible)
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 14; j += 2) {
-                board [i] [j] = (i * 14 + j) / 2 % tileTypes;
-                board [i] [j + 1] = (i * 14 + j) / 2 % tileTypes;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j += 2) {
+                board [i] [j] = (i * width + j) / 2 % tileTypes;
+                board [i] [j + 1] = (i * width + j) / 2 % tileTypes;
             }
         }
 
-        shuffle (70);
+        shuffle (pairsLeft);
     }
 
-    static enum GameState {
+    public void startLevel () {
+        state = GameState.PLAYING;
+        startTime = pauseTime = System.currentTimeMillis ();
+    }
+
+    public static enum GameState {
         PLAYING,
         WON_GAME,
         OVER,
@@ -47,56 +62,70 @@ class Logic {
         return level;
     }
 
-    public int getTileType (Point tile) {
-        return getTile (tile);
+    public int getTile (Point tile) {
+        return board [tile.y] [tile.x];
+    }
+
+    public void updateState () {
+        if (state == GameState.PLAYING) {
+            if (getTimeLeft () <= 0) { //hardcoded time limit
+                state = lostLevel();
+            }
+    
+            if (pairsLeft == 0) {
+                state = wonLevel();
+            }
+        }
     }
 
     public GameState getState () {
-        if (state == GameState.PAUSED) return state;
-
-        if (getTime () > 600000) {
-            state = lostLevel();
-        }
-
-        if (pairsLeft == 0) {
-            state = wonLevel();
-        }
-
         return state;
     }
 
-    public long getTime () {
-        return System.currentTimeMillis () - startTime;
+    public long getTimeLeft () {
+        return MAX_TIME - (System.currentTimeMillis () - startTime);
     }
 
-    public void removeTile (Point tile) {
-        board [tile.y] [tile.x] = -1;
+    public Point [] getHint () {
+        assertPlaying();
+        return hint;
     }
 
-    //checking won or lost is up to other class
+    public void removeHint () {
+        removeMatch (hint [0], hint [1]);
+    }
+
+    public boolean removeMatch (Point tile1, Point tile2) {
+        assertPlaying();
+        if (match (tile1, tile2) == null) return false;
+        board [tile1.y] [tile1.x] = -1;
+        board [tile2.y] [tile2.x] = -1;
+        pairsLeft--;
+        alignTiles ();
+        return true;
+    }
+
+    //checking won or lost is up to class that uses this one
     private GameState lostLevel () {
+        pause ();
         level--;
         if (level < 1) return GameState.OVER;
         return GameState.LOST_LEVEL;
     }
 
     private GameState wonLevel () {
+        pause ();
         level++;
         if (level > 9) return GameState.WON_GAME;
         return GameState.WON_LEVEL;
     }
 
-    //hints?
-
-    private int getTile (Point point) {
-        return board [point.y] [point.x];
-    }
-
     public boolean hasMatches () {
-        for (int i = 0; i < 140; i++) {
-            for (int j = i + 1; j < 140; j++) {
-                Point tile1 = new Point (i / 14, i % 14);
-                Point tile2 = new Point (j / 14, j % 14);
+        assertPlaying();
+        for (int i = 0; i < pairsLeft * 2; i++) {
+            for (int j = i + 1; j < pairsLeft * 2; j++) {
+                Point tile1 = nthTile (i);
+                Point tile2 = nthTile (j);
                 if (getTile (tile1) == (getTile (tile2)) && match (tile1, tile2) != null) {
                     this.hint = new Point [] {tile1, tile2};
                     return true;
@@ -107,17 +136,18 @@ class Logic {
         return false;
     }
 
-    public void shuffle () {
-        while (!hasMatches ()) switchRandom ();
-    }
-
-    public void switchRandom () {
+    private void switchRandom () {
         switchTiles (nthTile (random (0, pairsLeft * 2 - 1)), nthTile (random (0, pairsLeft * 2 - 1)));
     }
 
+    public void shuffle () {
+        assertPlaying();
+        while (!hasMatches ()) switchRandom ();
+    }
+    
     public void shuffle (int minRepetitions) {
+        assertPlaying();
         for (int i = 0; i < minRepetitions; i++) switchRandom ();
-
         shuffle ();
     }
 
@@ -129,8 +159,8 @@ class Logic {
     private Point nthTile (int index) {
         int count = -1;
 
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 14; j++) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
                 if (getTile (new Point (j, i)) != -1) {
                     count++;
                     if (count == index) return new Point (j, i);
@@ -148,7 +178,8 @@ class Logic {
     }
 
     //NOTE: alignVertical and alignHorizontal are very similar
-    public void alignTiles (int level) {
+    public void alignTiles () {
+        assertPlaying();
         switch (level) {
             case 3:
                 alignUp (true);
@@ -176,18 +207,18 @@ class Logic {
     }
 
     private void alignLeft (boolean half) {
-        alignHorizontal (0, half ? 7 : 14);
+        alignHorizontal (0, half ? width / 2 : width);
     }
 
     private void alignRight (boolean half) {
-        alignHorizontal (13, half ? 6 : -1);
+        alignHorizontal (width - 1, half ? (width - 1) / 2 : -1);
     }
 
     //not the method's responsibility to check that the start and end values are valid
     private void alignHorizontal (int start, int end) {
         int direction = (int) Math.signum (end - start);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < height; i++) {
             for (int j = start; j - end != 0; j += direction) {
                 if (getTile (new Point (j, i)) == -1) {
                     boolean hasMoreTiles = false;
@@ -207,18 +238,18 @@ class Logic {
     }
 
     private void alignUp (boolean half) {
-        alignVertical (0, half ? 5 : 10);
+        alignVertical (0, half ? height / 2 : height);
     }
 
     private void alignDown (boolean half) {
-        alignVertical (9, half ? 4 : -1);
+        alignVertical (height - 1, half ? (height - 1) / 2: -1);
     }
 
     //not the method's responsibility to check that the start and end values are valid
     private void alignVertical (int start, int end) {
         int direction = (int) Math.signum (end - start);
 
-        for (int i = 0; i < 14; i++) {
+        for (int i = 0; i < width; i++) {
             for (int j = start; j - end != 0; j += direction) {
                 if (getTile (new Point (i, j)) == -1) {
                     boolean hasMoreTiles = false;
@@ -243,12 +274,12 @@ class Logic {
         while (holes.size () != 0) {
             for (Point point : holes) {
                 //will pick horizontal align over vertical align if both are the same
-                if (Math.abs (4.5 - point.y) / 5 < Math.abs (6.5 - point.x) / 7) {
-                    if (point.y < 5) alignVertical (point.y, 0);
-                    else alignVertical (point.y, 10);
+                if (Math.abs ((float) (height - 1) / 2 - point.y) / (height / 2) < Math.abs ((float) (width - 1) / 2 - point.x) / (width / 2)) {
+                    if (point.y < height / 2) alignVertical (point.y, 0);
+                    else alignVertical (point.y, height);
                 } else {
-                    if (point.x < 7) alignHorizontal (point.x, 0);
-                    else alignHorizontal (point.x, 14);
+                    if (point.x < width / 2) alignHorizontal (point.x, 0);
+                    else alignHorizontal (point.x, width);
                 }
             }
 
@@ -257,10 +288,10 @@ class Logic {
     }
 
     //returns outermost gap
-        private ArrayList <Point> findHoles () {
+    private ArrayList <Point> findHoles () {
         ArrayList <Point> holes = new ArrayList <Point> ();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < height; i++) {
             ArrayList <Point> outerRing = nthOuterRing (i);
 
             for (Point point : outerRing) {
@@ -271,13 +302,17 @@ class Logic {
         return holes;
     }
 
+    private boolean invalidPos (Point point) {
+        return point.x >= 0 && point.x < width && point.y >= 0 && point.y < height;
+    }
+
     private boolean hole (Point point) {
         if (getTile (point) != -1) return false;
 
         int count = 0;
 
-        for (Direction direction: Direction.values ()) {
-            Point step = new Point (point.x + direction.x, point.y + direction.y);
+        for (Step.Direction direction: Step.Direction.values ()) {
+            Point step = new Point (point.x + direction.getX (), point.y + direction.getY ());
             if (invalidPos (step) || getTile (step) == -1) count++;
             if (count >= 3) return true;
         }
@@ -288,14 +323,14 @@ class Logic {
     private ArrayList <Point> nthOuterRing (int n) {
         ArrayList <Point> ring = new ArrayList <Point> ();
 
-        for (int j = n; j < 10 - n; j += 9 - 2 * n) {
-            for (int i = n; i < 14 - n; i++) {
+        for (int j = n; j < height - n; j += height - 1 - (2 * n)) {
+            for (int i = n; i < width - n; i++) {
                 ring.add (new Point (i, j));
             }
         }
 
-        for (int j = n; j < 14 - n; j += 13 - 2 * n) {
-            for (int i = n + 1; i < 10 - n - 1; i++) {
+        for (int j = n; j < width - n; j += width - 1 - (2 * n)) {
+            for (int i = n + 1; i < height - n - 1; i++) {
                 ring.add (new Point (j, i));
             }
         }
@@ -304,8 +339,10 @@ class Logic {
     }
 
     public void pause () {
-        pauseTime = System.currentTimeMillis ();
-        state = GameState.PAUSED;
+        if (getState () == GameState.PLAYING) {
+            pauseTime = System.currentTimeMillis ();
+            state = GameState.PAUSED;
+        }
     }
 
     public void resume () {
@@ -315,19 +352,24 @@ class Logic {
         }
     }
 
-    //keep track of matches made and give time bonus
-    public ArrayList <Step> match (Point tile1, Point tile2) {
+    public void giveTimeBonus () {
+        assertPlaying();
+        startTime += 250;
+    }
+
+    private ArrayList <Step> match (Point tile1, Point tile2) {
+        assertPlaying();
         if (getTile (tile1) == (getTile (tile2))) return null;
         return match (tile1, tile2, new ArrayList <Step> ());
     }
 
     private ArrayList <Step> match (Point curPos, Point tile2, ArrayList <Step> history) {
         if (curPos.equals (tile2)) return history;
-        if (invalidPos (curPos) || history.size () >= 3) return null;
+        if (invalidPosForPath (curPos) || history.size () >= 3) return null;
 
         ArrayList <Step> path = null;
 
-        for (Direction direction : Direction.values()) {
+        for (Step.Direction direction : Step.Direction.values()) {
             ArrayList <Step> newPath = match (newPos (curPos, direction), tile2, addStep (history, direction));
 
             if (newPath != null && (path == null || path.size () > newPath.size () || (path.size () == newPath.size () && length (newPath) < length (path)))) {
@@ -338,12 +380,12 @@ class Logic {
         return path;
     }
 
-    private boolean invalidPos (Point pos) {
-        if (pos.y < -1 || pos.x < -1 || pos.y >= 10 || pos.x >= 14) return false;
+    private boolean invalidPosForPath (Point pos) {
+        if (pos.y < -1 || pos.x < -1 || pos.y > height || pos.x > width) return false;
 
         boolean xOnBorder = false, yOnBorder = false;
-        if (pos.x == -1 || pos.x == 14) xOnBorder = true;
-        if (pos.y == -1 || pos.y == 10) yOnBorder = true;
+        if (pos.x == -1 || pos.x == width) xOnBorder = true;
+        if (pos.y == -1 || pos.y == height) yOnBorder = true;
 
         if (xOnBorder ^ yOnBorder) return true;
 
@@ -355,14 +397,14 @@ class Logic {
     static private int length (ArrayList <Step> path) {
         int length = 0;
         for (Step step : path) {
-            length += step.stepCount;
+            length += step.getSteps ();
         }
         return length;
     }
 
-    static private ArrayList <Step> addStep (ArrayList <Step> history, Direction direction) {
-        if (history.size () != 0 && history.get(history.size () - 1).direction.equals (direction)) {
-            history.add (new Step (direction, history.get (history.size () - 1).stepCount + 1));
+    static private ArrayList <Step> addStep (ArrayList <Step> history, Step.Direction direction) {
+        if (history.size () != 0 && history.get(history.size () - 1).getDirection ().equals (direction)) {
+            history.add (new Step (direction, history.get (history.size () - 1).getSteps () + 1));
             history.remove (history.size () - 2);
         } else {
             history.add (new Step (direction, 1));
@@ -371,54 +413,9 @@ class Logic {
         return history;
     }
 
-    static private Point newPos (Point point, Direction direction) {
-        point.x += direction.x;
-        point.y += direction.y;
+    static private Point newPos (Point point, Step.Direction direction) {
+        point.x += direction.getX ();
+        point.y += direction.getY ();
         return point;
-    }
-
-    enum Direction {
-        UP (0, -1),
-        DOWN (0, 1),
-        RIGHT (1, 0),
-        LEFT (-1, 0);
-
-        private int x, y;
-
-        private Direction (int x, int y) {
-            //Maybe signum here if I wanted to make this more widely useable
-            this.x = x;
-            this.y = y;
-        }
-
-        public int getX () {
-            return x;
-        }
-
-        public int getY () {
-            return y;
-        }
-        
-        public boolean equals (Direction other) {
-            return x == other.getX () && y == other.getY ();
-        }
-    }
-
-    static class Step {
-        private Direction direction;
-        private int stepCount;
-
-        public Step (Direction direction, int stepCount) {
-            this.direction = direction;
-            this.stepCount = stepCount;
-        }
-
-        public Direction getDirection () {
-            return direction;
-        }
-
-        public int getSteps () {
-            return stepCount;
-        }
     }
 }
