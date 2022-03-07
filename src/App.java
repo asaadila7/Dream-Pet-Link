@@ -7,14 +7,14 @@ public class App {
     static class AppFrame extends JFrame {
         public Game game;
         public Menu menu;
-        private boolean soundOn;
+        private boolean volumeOn;
         private boolean playing;
 
         public AppFrame () {
             super ("Dream Pet Link");
             playing = false;
-            soundOn = false;
-            menu = new Menu ();
+            volumeOn = false;
+            menu = new Menu (this);
             setContentPane (menu);
             pack ();
             setVisible (true);
@@ -22,7 +22,7 @@ public class App {
             this.addWindowListener (new WindowAdapter () { //window listener to pause game on minimize
                 @Override
                 public void windowDeiconified (WindowEvent e) {
-                    if (playing) game.resume (soundOn);
+                    if (playing) game.resume ();
                 }
     
                 @Override
@@ -35,7 +35,12 @@ public class App {
             final Runnable r = new Runnable() {
                 public void run () {
                     while (true) {
-                        if (playing) {}
+                        if (playing && game.gameOver ()) {
+                            playing = false;
+                            volumeOn = game.hasSound();
+                            game = null;
+                            setContainer (menu);
+                        }
                     }
                 }
             };
@@ -43,6 +48,10 @@ public class App {
     
             setResizable (false);
             setDefaultCloseOperation (WindowConstants.EXIT_ON_CLOSE);
+        }
+
+        public void setSound (boolean isOn) {
+            volumeOn = isOn;
         }
 
         private void setContainer (Container container) { //will this make a copy of the container or send it the original object?
@@ -53,13 +62,9 @@ public class App {
 
         public void startGame () {
             playing = true;
-            game = new Game (this);
+            game = new Game ();
             setContainer (game);
-        }
-
-        public void quitGame () {
-            game = null;
-            setContainer (menu);
+            game.startGame (volumeOn);
         }
     }
 

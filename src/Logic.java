@@ -3,6 +3,7 @@ import java.awt.Point;
 
 //cache matches found before to prevent having to check multiple times to find the same matches
 //will have to check whether those matches are still valid tho
+//get rid of assert playing in some of the methods
 
 class Logic {
     //40 type of tiles , 14 x 10 board
@@ -79,11 +80,16 @@ class Logic {
     }
 
     public GameState getState () {
+        if (state == null) return state;
+        updateState ();
         return state;
     }
 
-    public long getTimeLeft () {
-        return MAX_TIME - (System.currentTimeMillis () - startTime);
+    public int getTimeLeft () {
+        if (getState() != GameState.PLAYING) {
+            return (int) (MAX_TIME - (pauseTime - startTime));
+        }
+        return (int) (MAX_TIME - (System.currentTimeMillis () - startTime));
     }
 
     public Point [] getHint () {
@@ -126,7 +132,7 @@ class Logic {
             for (int j = i + 1; j < pairsLeft * 2; j++) {
                 Point tile1 = nthTile (i);
                 Point tile2 = nthTile (j);
-                if (getTile (tile1) == (getTile (tile2)) && match (tile1, tile2) != null) {
+                if (getTile (tile1) != -1 && getTile (tile1) == (getTile (tile2)) && match (tile1, tile2) != null) {
                     this.hint = new Point [] {tile1, tile2};
                     return true;
                 }
@@ -357,7 +363,7 @@ class Logic {
         startTime += 250;
     }
 
-    private ArrayList <Step> match (Point tile1, Point tile2) {
+    public ArrayList <Step> match (Point tile1, Point tile2) {
         assertPlaying();
         if (getTile (tile1) == (getTile (tile2))) return null;
         return match (tile1, tile2, new ArrayList <Step> ());

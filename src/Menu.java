@@ -1,26 +1,52 @@
-import java.io.File;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import javax.swing.*;
 
-public class Menu extends Container implements ActionListener {
+public class Menu extends Container {
 
     //Buttons
-    private JButton instructions = new JButton (new ImageIcon ("./Instructions.png"));
-    private JButton sound = new JButton (new ImageIcon("./sound.png"));
+    private JToggleButton instructions = new JToggleButton (new ImageIcon ("./Instructions.png"));
+    private JToggleButton sound = new JToggleButton (new ImageIcon("./sound.png"));
     private JButton play = new JButton ("New Game");
+    private ImageIcon close = new ImageIcon ("./close.png");
+    private ImageIcon soundOff = new ImageIcon ("./soundOff.png");
 
-    public Menu () {
+    public Menu (App.AppFrame owner) {
+        instructions.setSelectedIcon (close);
+        instructions.addItemListener (
+            new ItemListener () {
+                @Override
+                public void itemStateChanged (ItemEvent event) {
+                    if (instructions.isSelected ()) add (new Instructions ());
+                    else remove (1);
+                }
+            }
+        );
+
+        sound.setSelectedIcon (soundOff);
+        sound.addItemListener (
+            new ItemListener () {
+                @Override
+                public void itemStateChanged (ItemEvent event) {
+                    if (sound.isSelected ()) owner.setSound (true);
+                    else owner.setSound (false);
+                }
+            }
+        );
+
+        play.addActionListener (
+            new ActionListener () {
+                @Override
+                public void actionPerformed (ActionEvent event) {
+                    owner.startGame ();
+                }
+            }
+        );
+
         setLayout(new BorderLayout());
 
         JPanel backgroundPanel = new JPanel ();
         backgroundPanel.setLayout (new BorderLayout());
-
-        //action listener
-        play.addActionListener (this);
-        instructions.addActionListener (this);
-        sound.addActionListener (this);
 
         //Button Layout
         JPanel buttonPane = new JPanel();
@@ -38,14 +64,5 @@ public class Menu extends Container implements ActionListener {
 
         backgroundPanel.add(buttonPane, BorderLayout.CENTER);
         add (backgroundPanel);
-    }
-
-    public void actionPerformed (ActionEvent event) {
-        if (event.getSource () == play) {
-            Main.frame.startGame ();
-        } else if (event.getSource () == instructions) {
-            new Instructions (Main.frame);
-        } else if (event.getSource () == sound) {
-        }
     }
 }
