@@ -30,8 +30,6 @@ public class Game extends Container {
     private ImageIcon soundOn, soundOff, pause, resume, hint, instructions, closeInstructions;
 
     public Game () {
-        levelLabel = new JLabel (Integer.toString (logic.getLevel ()));
-
         quitHandler = new QuitHandler ();
         startLevelHandler = new StartLevelHandler ();
 
@@ -40,6 +38,7 @@ public class Game extends Container {
 
         logic = new Logic (Tile.TYPES, HEIGHT, WIDTH);
         logic.setUpLevel ();
+        levelLabel = new JLabel (Integer.toString (logic.getLevel ()));
 
         playScreen = new Board (this, HEIGHT, WIDTH);
         shuffleScreen = new Background ("./shuffleScreen.png");
@@ -68,6 +67,7 @@ public class Game extends Container {
         instructionsButton = new JToggleButton (instructions);
         instructionsButton.setSelectedIcon (closeInstructions);
 
+        buttonPane = new JPanel ();
         buttonPane.add (pauseButton);
         buttonPane.add (soundButton);
         buttonPane.add (hintButton);
@@ -133,6 +133,7 @@ public class Game extends Container {
         final Runnable runnable = new Runnable() {
             public void run () {
                 while (!hasQuit) {
+                    logic.updateState ();
                     if (logic.getState () == Logic.GameState.LOST_LEVEL || logic.getState () == Logic.GameState.OVER) {
                         JPanel panel = new JPanel ();
                         if (logic.getState () == Logic.GameState.OVER) {
@@ -256,7 +257,7 @@ public class Game extends Container {
     }
 
     private void stopSound () {
-        sound.shouldQuit = true;
+        if (sound != null) sound.shouldQuit = true;
     }
 
     private void update () {
@@ -285,8 +286,8 @@ public class Game extends Container {
             } else if (!logic.hasMatches ()) {
                 logic.pause ();
                 switchComponent (shuffleScreen);
-                try { //potential problem: screen will be unresponsive for a whole minute********************
-                    Thread.sleep (1000);
+                try { //potential problem: screen will be unresponsive for a whole 2 seconds ********************
+                    Thread.sleep (2000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -332,13 +333,14 @@ public class Game extends Container {
         
         //will assume type is within 0 and 39 and filetypes are jpg
         public Tile (int type) {
-            super (new ImageIcon ("./Tiles/" + IMAGES [type] + ".jpg"));
+            super (new ImageIcon ("C:/Users/aadil/Documents/Git Projects/Dream Pet Link/Dream Pet Link/src/Tiles/" + IMAGES [type] + ".jpg"));
             this.type = type;
         }
 
         public void setType (int type) {
             this.type = type;
-            super.setIcon (getIconForType());
+            if (type == -1) setIcon (null); //disable button
+            else super.setIcon (getIconForType());
         }
 
         private ImageIcon getIconForType () {
@@ -355,8 +357,8 @@ public class Game extends Container {
             @Override
             public void actionPerformed (ActionEvent event) {
                 String actionCommand = event.getActionCommand ();
-                int x = Integer.parseInt (actionCommand.substring (0, actionCommand.indexOf (' ')));
-                int y = Integer.parseInt (actionCommand.substring (actionCommand.indexOf (',') + 1));
+                int x = Integer.parseInt (actionCommand.substring (0, actionCommand.indexOf (',')));
+                int y = Integer.parseInt (actionCommand.substring (actionCommand.indexOf (' ') + 1));
                 game.clickTile (x, y);
             }
         }
@@ -368,18 +370,21 @@ public class Game extends Container {
         private Point lastClicked;
         private static final int tileSize = 30; //in pixels
         private static final int tileGap = 2;
+        private final int height, width;
 
         public Board (Game game, int height, int width) {
+            this.height = height;
+            this.width = width;
             hintBorder = BorderFactory.createLineBorder(Color.orange);
             selectBorder = BorderFactory.createLineBorder(Color.yellow); //optional int param to specify thickness of border in pixels
             this.game = game;
-            setLayout (new GridLayout (height, width, tileGap, tileGap));
+            setLayout (new GridLayout (width, height, tileGap, tileGap)); //is it width, height or height, width
 
-            tiles = new Tile [HEIGHT] [WIDTH];
+            tiles = new Tile [height] [width];
             Handler handler = new Handler ();
             ButtonGroup group = new ButtonGroup ();
-            for (int i = 0; i < HEIGHT; i++) {
-                for (int j = 0; j < 14; j++) {
+            for (int i = 0; i < height; i++) {
+                for (int j = 0; j < width; j++) {
                     tiles [i] [j] = new Tile (logic.getTile (new Point (j, i)));
                     tiles [i] [j].setActionCommand (j + ", " + i);
                     tiles [i] [j].addActionListener (handler);
@@ -390,14 +395,17 @@ public class Game extends Container {
         }
 
         public void updateBoard () {
-            for (int i = 0; i < HEIGHT; i++) {
-                for (int j = 0; j < WIDTH; j++) {
+            for (int i = 0; i < height; i++) {
+                for (int j = 0; j < width; j++) {
                     int type = logic.getTile (new Point (j, i));
                     if (tiles [i] [j].getType () != type) {
                         tiles [i] [j] .setType (type);
                     }
                 }
             }
+
+            revalidate ();
+            repaint ();
         }
 
         public void setHintBorder (Point tile1, Point tile2) {
@@ -419,7 +427,6 @@ public class Game extends Container {
         //draw line between the tiles and make them disappear and then make lastClicked = null
         public void selectMatch (Point tile) {
             ArrayList <Step> path = logic.match (lastClicked, tile);
-            
             clearHintBorder ();
             tiles [tile.y] [tile.x].setBorder (selectBorder);
         }
@@ -453,7 +460,8 @@ public class Game extends Container {
         @Override
         protected void paintComponent (Graphics g)  {
             super.paintComponent (g);
-            g.drawImage (background, 0, 0, getWidth (), getHeight (), background.getWidth (this) - getWidth (), background.getHeight (this) - getHeight (), background.getWidth (this), background.getHeight (this), this);
+            //g.drawImage (background, 0, 0, getWidth (), getHeight (), background.getWidth (this) - getWidth (), background.getHeight (this) - getHeight (), background.getWidth (this), background.getHeight (this), this);
+            //*****************************************************************************
         }
     }
 }

@@ -3,6 +3,12 @@ import javax.swing.WindowConstants;
 import java.awt.event.*;
 import java.awt.*;
 
+//volume and mute: <a href="https://www.flaticon.com/free-icons/speaker" title="speaker icons">Speaker icons created by Pixel perfect - Flaticon</a>
+//question mark: <a href="https://www.flaticon.com/free-icons/doubt" title="doubt icons">Doubt icons created by Freepik - Flaticon</a>
+//x: <a href="https://www.flaticon.com/free-icons/close" title="close icons">Close icons created by inkubators - Flaticon</a>
+//pause: <a href="https://www.flaticon.com/free-icons/pause" title="pause icons">Pause icons created by Kiranshastry - Flaticon</a>
+//resume: <a href="https://www.flaticon.com/free-icons/pause" title="pause icons">Pause icons created by IYAHICON - Flaticon</a>
+
 public class App {
     static class AppFrame extends JFrame {
         public Game game;

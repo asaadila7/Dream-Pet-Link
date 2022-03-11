@@ -31,6 +31,7 @@ class Step {
     private int stepCount;
 
     public Step (Direction direction, int stepCount) {
+        if (stepCount < 1) throw new Error ("#steps invalid");
         this.direction = direction;
         this.stepCount = stepCount;
     }
@@ -41,5 +42,13 @@ class Step {
 
     public int getSteps () {
         return stepCount;
+    }
+
+    public void incrementSteps () {
+        stepCount++;
+    }
+
+    public Step copyStep () {
+        return new Step (direction, stepCount);
     }
 }
