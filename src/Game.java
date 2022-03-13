@@ -7,79 +7,88 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+//multiple levels, quit, pause, sound, hint, instructions
+
 public class Game extends Container {
     //make some of these local if possible
-    private final static int HEIGHT = 10, WIDTH = 14;
-    private Logic logic;
-    private Sound sound;
-    private JPanel pauseScreen, shuffleScreen;
-    private JScrollPane instructionsScreen;
+    //use cardLayout
+
+    private static final ImageIcon instructions = new ImageIcon ("./resources/instructions.png");
+    private static final ImageIcon close = new ImageIcon ("./resources/close.png");
+    private static final ImageIcon pause = new ImageIcon ("./resources/pause.png");
+    private static final ImageIcon resume = new ImageIcon ("./resources/resume.png");
+    private static final ImageIcon hint = new ImageIcon ("./resources/hint.png");
+    private static final ImageIcon soundOn = new ImageIcon ("./resources/soundOn.png");
+    private static final ImageIcon soundOff = new ImageIcon ("./resources/soundOff.png");
+
+    private final CardLayout cardLayout = new CardLayout ();
+    private final JPanel screen = new JPanel (cardLayout);
+    private final Background shuffleScreen = new Background ("./Resources/background.jpg");
+    private final Background pauseScreen = new Background ("./Resources/background.jpg");
+    private final JScrollPane instructionsScreen = new Instructions ();
+    private static final String instructionsString = "Instructions";
+    private static final String pauseString = "Pause";
+    private static final String shuffleString = "Shuffle";
+    private static final String playString = "Play";
+
+    private static final long MAX_TIME = 60000;
+    private long startTime;
+
+    private final QuitHandler quitHandler = new QuitHandler ();
+    private final StartLevelHandler startLevelHandler = new StartLevelHandler ();
+
+    private final JButton quitButton = new JButton ("Quit");
+    private final JButton startButton = new JButton ("Start Next Level");
+    private final JButton hintButton = new JButton (hint);
+    private final JToggleButton instructionsButton = new JToggleButton (instructions);
+    private final JToggleButton pauseButton = new JToggleButton (pause);
+    private final JToggleButton soundButton = new JToggleButton (soundOn);
+
+    private final JLabel levelLabel;
+    private final JProgressBar timeBar;
+
     private Board playScreen;
-    private JProgressBar timeBar;
+    private Sound sound;
 
     private boolean hasQuit;
     private boolean volumeOn;
     private int hintsLeft;
-    private int [] score;
-    private QuitHandler quitHandler;
-    private StartLevelHandler startLevelHandler;
-    private JLabel levelLabel;
-
-    private JPanel buttonPane;
-    private AbstractButton soundButton, pauseButton, instructionsButton, hintButton;
-    private ImageIcon soundOn, soundOff, pause, resume, hint, instructions, closeInstructions;
+    private int level;
+    private int [] score = new int [9];
 
     public Game () {
-        quitHandler = new QuitHandler ();
-        startLevelHandler = new StartLevelHandler ();
-
         hintsLeft = 6;
-        score = new int [9];
+        level = 1;
+        levelLabel = new JLabel (Integer.toString (level));
+        playScreen = new Board (level);
 
-        logic = new Logic (Tile.TYPES, HEIGHT, WIDTH);
-        logic.setUpLevel ();
-        levelLabel = new JLabel (Integer.toString (logic.getLevel ()));
-
-        playScreen = new Board (this, HEIGHT, WIDTH);
-        shuffleScreen = new Background ("./shuffleScreen.png");
-        instructionsScreen = new Instructions ();
-        pauseScreen = new Background ("./pauseScreen.png");
-
-        JButton quitButton = new JButton ("QUIT");
-        quitButton.addActionListener (quitHandler);
-        pauseScreen.add (quitButton);
-
-        timeBar = new JProgressBar (0, (int) Logic.MAX_TIME);
-
-        soundOn = new ImageIcon ("./soundOn.png");
-        soundOff = new ImageIcon ("./soundOff.png");
-        pause = new ImageIcon ("./pause.png");
-        resume = new ImageIcon ("./resume.png");
-        hint = new ImageIcon ("./hint.png");
-        instructions = new ImageIcon ("./instructions.png");
-        closeInstructions = new ImageIcon ("./close.png");
-
-        pauseButton = new JToggleButton (pause);
+        JPanel buttonPane = new JPanel ();
         pauseButton.setSelectedIcon (resume);
-        soundButton = new JToggleButton (soundOn);
         soundButton.setSelectedIcon (soundOff);
-        hintButton = new JButton (Integer.toString (hintsLeft), hint);
-        instructionsButton = new JToggleButton (instructions);
-        instructionsButton.setSelectedIcon (closeInstructions);
-
-        buttonPane = new JPanel ();
+        instructionsButton.setSelectedIcon (close);
         buttonPane.add (pauseButton);
         buttonPane.add (soundButton);
         buttonPane.add (hintButton);
         buttonPane.add (instructionsButton);
+
+        screen.add (instructionsString, instructionsScreen);
+        screen.add (playString, playScreen);
+        screen.add (pauseString, pauseScreen);
+        screen.add (shuffleString, shuffleScreen);
+        add (screen);
+        cardLayout.show (screen, playString);
+
+        quitButton.addActionListener (quitHandler);
+        pauseScreen.add (quitButton);
+
+        timeBar = new JProgressBar (0, (int) MAX_TIME);
 
         hintButton.addActionListener (
             new ActionListener () {
                 @Override
                 public void actionPerformed (ActionEvent event) {
                     if (hintsLeft > 0) {
-                        Point [] hint = logic.getHint ();
-                        playScreen.setHintBorder (hint [0], hint [1]);
+                        playScreen.showHint ();
                         hintsLeft--;
                         hintButton.setText (Integer.toString (hintsLeft));
                     }
@@ -90,9 +99,14 @@ public class Game extends Container {
         pauseButton.addItemListener (
             new ItemListener () {
                 @Override
-                public void itemStateChanged (ItemEvent eve) {
-                    if (pauseButton.isSelected()) pause ();
-                    else resume ();
+                public void itemStateChanged (ItemEvent event) {
+                    if (pauseButton.isSelected()) {
+                        pause ();
+                        cardLayout.show (screen, pauseString);
+                    } else {
+                        cardLayout.show (screen, playString);
+                        resume ();
+                    }
                 }
             }
         );
@@ -112,19 +126,13 @@ public class Game extends Container {
                 @Override
                 public void itemStateChanged (ItemEvent event) {
                     if (instructionsButton.isSelected ()) {
-                        if (logic.getState () != Logic.GameState.PAUSED) {
-                            logic.pause ();
-                            stopSound ();
-                        }
+                        if (!pauseButton.isSelected ()) pause (); //CHANGE PAUSE METHOD TO NOT CHANGE TO PAUSE SCREEN: MUST TURN OFF SOUND
                         setButtonsEnabled (false);
-                        switchComponent (instructionsScreen);
+                        cardLayout.show (screen, instructionsString);
                     } else {
-                        switchComponent (playScreen);
+                        cardLayout.show (screen, playString);
                         setButtonsEnabled (true);
-                        if (logic.getState () != Logic.GameState.PAUSED) {
-                            playSound ();
-                            logic.resume ();
-                        }
+                        if (!pauseButton.isSelected ()) resume (); //REWRITE TO JUST CHANGE TIME AND TOGGLE SOUND
                     }
                 }
             }
@@ -210,7 +218,7 @@ public class Game extends Container {
         }
         logic.setUpLevel ();
         playScreen.updateBoard ();
-        switchComponent (playScreen);
+        cardLayout.show (screen, playString);
         update ();
         logic.startLevel ();
     }
@@ -241,11 +249,9 @@ public class Game extends Container {
         logic.pause ();
         stopSound ();
         setButtonsEnabledForPause (false);
-        switchComponent (pauseScreen);
     }
 
     public void resume () {
-        switchComponent (playScreen);
         setButtonsEnabledForPause (true);
         if (volumeOn) playSound();
         logic.resume ();
@@ -285,13 +291,13 @@ public class Game extends Container {
                 }
             } else if (!logic.hasMatches ()) {
                 logic.pause ();
-                switchComponent (shuffleScreen);
+                cardLayout.show (screen, shuffleString);
                 try { //potential problem: screen will be unresponsive for a whole 2 seconds ********************
                     Thread.sleep (2000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                switchComponent (playScreen);
+                cardLayout.show (screen, playString);
                 logic.resume ();
                 logic.shuffle ();
             }
@@ -326,123 +332,6 @@ public class Game extends Container {
         }
     }
 
-    class Tile extends JRadioButton {
-        static final int TYPES = 40;
-        private static final String IMAGES [] = {"Black Cracks", "Blue Leaves", "Blue Swirl Painting", "Bricks", "Cabbage", "Cracked Ice", "Cracked Wall", "Dewdrops on Orange Flower", "Dewdrops on Purple Leaf", "Ferns", "Fire", "Golden Maple Leaves", "Green Cut Glass", "Grey Abstract", "Leaves on a Tree", "Lemon Bubbles", "Lemon Wedge", "Maple Leaves", "Mossy Rock Face", "Night Sky", "Orange Maple Leaves", "Orange Sunset", "Orange Swirl Painting", "Pink and Purple Smoke", "Pink Clouds", "Pink Flowers", "Purple Feathers", "Purple Flowers", "Purple Oil Painting", "Red Abstract Painting", "Red Cut Glass", "Red Leaf", "Rock Wall", "Sea Foam", "Smoke", "Sunset with Trees", "Tree Bark", "Virus", "White Silk", "White Stones"};
-        private int type;
-        
-        //will assume type is within 0 and 39 and filetypes are jpg
-        public Tile (int type) {
-            super (new ImageIcon ("C:/Users/aadil/Documents/Git Projects/Dream Pet Link/Dream Pet Link/src/Tiles/" + IMAGES [type] + ".jpg"));
-            this.type = type;
-        }
-
-        public void setType (int type) {
-            this.type = type;
-            if (type == -1) setIcon (null); //disable button
-            else super.setIcon (getIconForType());
-        }
-
-        private ImageIcon getIconForType () {
-            return new ImageIcon ("./Tiles/" + IMAGES [type] + ".jpg");
-        }
-
-        public int getType () {
-            return type;
-        }
-    }
-
-    class Board extends JPanel {
-        class Handler implements ActionListener { //should I use an item listener instead?**************************
-            @Override
-            public void actionPerformed (ActionEvent event) {
-                String actionCommand = event.getActionCommand ();
-                int x = Integer.parseInt (actionCommand.substring (0, actionCommand.indexOf (',')));
-                int y = Integer.parseInt (actionCommand.substring (actionCommand.indexOf (' ') + 1));
-                game.clickTile (x, y);
-            }
-        }
-
-        private Tile [] [] tiles;
-        private Game game;
-        private Border hintBorder, selectBorder;
-        private Point hint [];
-        private Point lastClicked;
-        private static final int tileSize = 30; //in pixels
-        private static final int tileGap = 2;
-        private final int height, width;
-
-        public Board (Game game, int height, int width) {
-            this.height = height;
-            this.width = width;
-            hintBorder = BorderFactory.createLineBorder(Color.orange);
-            selectBorder = BorderFactory.createLineBorder(Color.yellow); //optional int param to specify thickness of border in pixels
-            this.game = game;
-            setLayout (new GridLayout (width, height, tileGap, tileGap)); //is it width, height or height, width
-
-            tiles = new Tile [height] [width];
-            Handler handler = new Handler ();
-            ButtonGroup group = new ButtonGroup ();
-            for (int i = 0; i < height; i++) {
-                for (int j = 0; j < width; j++) {
-                    tiles [i] [j] = new Tile (logic.getTile (new Point (j, i)));
-                    tiles [i] [j].setActionCommand (j + ", " + i);
-                    tiles [i] [j].addActionListener (handler);
-                    group.add (tiles [i] [j]);
-                    add (tiles [i] [j]);
-                }
-            }
-        }
-
-        public void updateBoard () {
-            for (int i = 0; i < height; i++) {
-                for (int j = 0; j < width; j++) {
-                    int type = logic.getTile (new Point (j, i));
-                    if (tiles [i] [j].getType () != type) {
-                        tiles [i] [j] .setType (type);
-                    }
-                }
-            }
-
-            revalidate ();
-            repaint ();
-        }
-
-        public void setHintBorder (Point tile1, Point tile2) {
-            clearHintBorder ();
-            tiles [tile1.y] [tile1.x].setBorder (hintBorder);
-            tiles [tile2.y] [tile2.x].setBorder (hintBorder);
-            hint = new Point [] {tile1, tile2};
-        }
-
-        private void clearHintBorder () {
-            if (hint != null) {
-                for (int i = 0; i < 2; i++) {
-                    tiles [hint [i].y] [hint [i].x].setBorder (null); //may not work: maybe try overriding paintBorder or set and empty border
-                }
-                hint = null;
-            }
-        }
-
-        //draw line between the tiles and make them disappear and then make lastClicked = null
-        public void selectMatch (Point tile) {
-            ArrayList <Step> path = logic.match (lastClicked, tile);
-            clearHintBorder ();
-            tiles [tile.y] [tile.x].setBorder (selectBorder);
-        }
-
-        public void selectNonMatch (Point tile) {
-            clearHintBorder ();
-            if (lastClicked != null) tiles [lastClicked.y] [lastClicked.x].setBorder (null);
-            tiles [tile.y] [tile.x].setBorder (selectBorder);
-            lastClicked = tile;
-        }
-
-        public Point getLastClicked () {
-            return lastClicked;
-        }
-    }
-
     public class Background extends JPanel {
         private Image background;
     
@@ -460,8 +349,7 @@ public class Game extends Container {
         @Override
         protected void paintComponent (Graphics g)  {
             super.paintComponent (g);
-            //g.drawImage (background, 0, 0, getWidth (), getHeight (), background.getWidth (this) - getWidth (), background.getHeight (this) - getHeight (), background.getWidth (this), background.getHeight (this), this);
-            //*****************************************************************************
+            g.drawImage (background, 0, 0, getWidth (), getHeight (), background.getWidth (this) - getWidth (), background.getHeight (this) - getHeight (), background.getWidth (this), background.getHeight (this), this);
         }
     }
 }

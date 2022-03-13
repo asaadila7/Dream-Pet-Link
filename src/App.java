@@ -8,6 +8,9 @@ import java.awt.*;
 //x: <a href="https://www.flaticon.com/free-icons/close" title="close icons">Close icons created by inkubators - Flaticon</a>
 //pause: <a href="https://www.flaticon.com/free-icons/pause" title="pause icons">Pause icons created by Kiranshastry - Flaticon</a>
 //resume: <a href="https://www.flaticon.com/free-icons/pause" title="pause icons">Pause icons created by IYAHICON - Flaticon</a>
+//background image for pause screen is Pawel Czerwinski on unsplash
+//empty square : <a href="https://www.flaticon.com/free-icons/rounded-square" title="rounded square icons">Rounded square icons created by Freepik - Flaticon</a>
+//hint: <a href="https://www.flaticon.com/free-icons/magnifying-glass" title="magnifying glass icons">Magnifying glass icons created by Ayub Irawan - Flaticon</a>
 
 public class App {
     static class AppFrame extends JFrame {

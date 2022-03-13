@@ -4,7 +4,7 @@ import java.util.ArrayList;
 //Changes: no longer handles time or returns a game state: has only a boolean to keep track of whether all the pairs have been matched
 //got rid of assertPlaying () as well. the calling class can handle that
 
-public class Logic2 {
+public class Logic {
     public static final int height = 10, width = 14; //even numbers are nice
     private final int level;
     private int pairsLeft;
@@ -13,7 +13,7 @@ public class Logic2 {
     private Point [] hint;
 
     //will assume tileTypes is > 0  and level is from 1 to 9
-    public Logic2 (int tileTypes, int level) {
+    public Logic (int tileTypes, int level) {
         this.level = level;
         board = new int [height] [width];
         pairsLeft = height * width / 2;
@@ -35,7 +35,10 @@ public class Logic2 {
         return boardCleared;
     }
 
+    //will occasionally return null;
     public Point [] getHint () {
+        if (hint != null) return hint;
+        hasMatches (); //will set hint for me (or it will just stay null if there are no matches left)
         return hint;
     }
 
@@ -43,14 +46,14 @@ public class Logic2 {
         return board [tile.y] [tile.x];
     }
 
-    public boolean removeMatch (Point tile1, Point tile2) { //should this return a boolean?
-        if (null == match (tile1, tile2)) return false;
+    //should i make this return a boolean?
+    public void removeMatch (Point tile1, Point tile2) { //should this return a boolean?
+        if (null == match (tile1, tile2)) return;
         board [tile1.y] [tile1.x] = -1;
         board [tile2.y] [tile2.x] = -1;
         pairsLeft--;
         if (pairsLeft == 0) boardCleared = true;
         alignTiles ();
-        return true;
     }
 
     public void shuffle () {
@@ -88,7 +91,7 @@ public class Logic2 {
         board [tile2.y] [tile2.x] = temp;
     }
 
-    private boolean hasMatches () {
+    public boolean hasMatches () {
         for (int i = 0; i < pairsLeft * 2; i++) {
             for (int j = 0; j < pairsLeft * 2; j++) {
                 Point tile1 = nthTile (i);
@@ -104,7 +107,7 @@ public class Logic2 {
     }
 
     //will return null if tiles cannot be matched, will otherwise return a list of steps to get from one tile to the other
-    private Path match (Point tile1, Point tile2) {
+    public Path match (Point tile1, Point tile2) {
         if (getTile (tile1) == -1 || tile1.equals (tile2) || getTile (tile1) != getTile (tile2)) return null;
         return match (tile1, tile2, new Path ());
     }
