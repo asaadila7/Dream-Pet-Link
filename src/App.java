@@ -27,19 +27,21 @@ public class App {
             setContentPane (menu);
             pack ();
             setVisible (true);
-    
+            setResizable (false);
+            this.setDefaultCloseOperation (WindowConstants.EXIT_ON_CLOSE);
+
             this.addWindowListener (new WindowAdapter () { //window listener to pause game on minimize
                 @Override
                 public void windowDeiconified (WindowEvent e) {
                     if (playing) game.resume ();
                 }
-    
+
                 @Override
                 public void windowIconified (WindowEvent e) {
                     if (playing) game.pause ();
                 }
             });
-        
+
             //runnable to run game
             final Runnable r = new Runnable() {
                 public void run () {
@@ -54,9 +56,6 @@ public class App {
                 }
             };
             new Thread (r).start();
-    
-            setResizable (false);
-            setDefaultCloseOperation (WindowConstants.EXIT_ON_CLOSE);
         }
 
         public void setSound (boolean isOn) {
@@ -77,8 +76,6 @@ public class App {
         }
     }
 
-    public static Logic logic;
-    public static boolean soundOn;
     public static AppFrame frame;
 
     public static void main (String[] args) {
