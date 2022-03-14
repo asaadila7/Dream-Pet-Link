@@ -4,19 +4,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 
-//cannot pause while shuffling
-//take care of shuffling internally
+//time bonus when match found
 public class Board extends JPanel {
-    class Handler implements ActionListener { //should I use an item listener instead?**************************
-        @Override
-        public void actionPerformed (ActionEvent event) {
-            String actionCommand = event.getActionCommand ();
-            int x = Integer.parseInt (actionCommand.substring (0, actionCommand.indexOf (',')));
-            int y = Integer.parseInt (actionCommand.substring (actionCommand.indexOf (' ') + 1));
-            clickTile (x, y);
-        }
-    }
-
     private static final Border hintBorder = BorderFactory.createLineBorder(Color.orange);
     private static final Border selectBorder = BorderFactory.createLineBorder(Color.yellow); //optional int param to specify thickness of border in pixels
     private static final Color lineColor = Color.yellow;
@@ -93,6 +82,7 @@ public class Board extends JPanel {
     }
 
     public void selectMatch (Point tile, Path path) {
+        System.out.println ("Match: (" + tile.x + ", " + tile.y + ")");
         clearHintBorder ();
         tiles [tile.y] [tile.x].setBorder (selectBorder);
 
@@ -122,6 +112,7 @@ public class Board extends JPanel {
     }
 
     public void selectNonMatch (Point tile) {
+        System.out.println ("Non match: (" + tile.x + ", " + tile.y + ")");
         clearHintBorder ();
         if (lastClicked != null) tiles [lastClicked.y] [lastClicked.x].setBorder (null);
         tiles [tile.y] [tile.x].setBorder (selectBorder);
@@ -130,14 +121,20 @@ public class Board extends JPanel {
 
     private void clickTile (int x, int y) {
         Point thisClick = new Point (x, y);
-        Path path = logic.match (lastClicked, thisClick);
 
-        if (lastClicked == null || path == null) {
+        if (lastClicked == null) {
+            System.out.println ("Last clicked is null");
             selectNonMatch (thisClick);
         } else {
-            selectMatch (thisClick, path);
-            if (!logic.hasMatches ()) logic.shuffle (); //should time be paused when shuffling?
-            updateBoard (); //should i move this out of if block?
+            Path path = logic.match (lastClicked, thisClick);
+            if (path == null) {
+                System.out.println ("Path is null");
+                selectNonMatch (thisClick);
+            } else {
+                selectMatch (thisClick, path);
+                if (!logic.hasMatches ()) logic.shuffle (); //should time be paused when shuffling?
+                updateBoard (); //should i move this out of if block?
+            }
         }
     }
 
@@ -146,6 +143,16 @@ public class Board extends JPanel {
         super.paintComponent (g);
         g.setColor (lineColor);
         for (Line line: lines) g.drawLine (line.x1, line.y1, line.x2, line.y2);
+    }
+
+    class Handler implements ActionListener { //should I use an item listener instead?**************************
+        @Override
+        public void actionPerformed (ActionEvent event) {
+            String actionCommand = event.getActionCommand ();
+            int x = Integer.parseInt (actionCommand.substring (0, actionCommand.indexOf (',')));
+            int y = Integer.parseInt (actionCommand.substring (actionCommand.indexOf (' ') + 1));
+            clickTile (x, y);
+        }
     }
 
     private static class Line{
@@ -164,7 +171,7 @@ public class Board extends JPanel {
 
     class Tile extends JRadioButton {
         static final int TYPES = 40;
-        private static final String IMAGES [] = {"Black Cracks", "Blue Leaves", "Blue Swirl Painting", "Bricks", "Cabbage", "Cracked Ice", "Cracked Wall", "Dewdrops on Orange Flower", "Dewdrops on Purple Leaf", "Ferns", "Fire", "Golden Maple Leaves", "Green Cut Glass", "Grey Abstract", "Leaves on a Tree", "Lemon Bubbles", "Lemon Wedge", "Maple Leaves", "Mossy Rock Face", "Night Sky", "Orange Maple Leaves", "Orange Sunset", "Orange Swirl Painting", "Pink and Purple Smoke", "Pink Clouds", "Pink Flowers", "Purple Feathers", "Purple Flowers", "Purple Oil Painting", "Red Abstract Painting", "Red Cut Glass", "Red Leaf", "Rock Wall", "Sea Foam", "Smoke", "Sunset with Trees", "Tree Bark", "Virus", "White Silk", "White Stones"};
+        private static final String IMAGES [] = {"Black Cracks.jpg", "Blue Leaves.jpg", "Blue Swirl Painting.jpg", "Bricks.jpg", "Cabbage.jpg", "Cracked Ice.jpg", "Cracked Wall.jpg", "Dewdrops on Orange Flower.jpg", "Dewdrops on Purple Leaf.jpg", "Ferns.jpg", "Fire.jpg", "Golden Maple Leaves.jpg", "Green Cut Glass.png", "Grey Abstract.jpg", "Leaves on a Tree.jpg", "Lemon Bubbles.jpg", "Lemon Wedge.jpg", "Maple Leaves.jpg", "Mossy Rock Face.jpg", "Night Sky.jpg", "Orange Maple Leaves.jpg", "Orange Sunset.jpg", "Orange Swirl Painting.jpg", "Pink and Purple Smoke.jpg", "Pink Clouds.jpg", "Pink Flowers.jpg", "Purple Feathers.jpg", "Purple Flowers.jpg", "Purple Oil Painting.jpg", "Red Abstract Painting.jpg", "Red Cut Glass.png", "Red Leaf.jpg", "Rock Wall.jpg", "Sea Foam.jpg", "Smoke.jpg", "Sunset with Trees.jpg", "Tree Bark.jpg", "Virus.jpg", "White Silk.jpg", "White Stones.jpg"};
         private int type;
 
         //will assume type is within 0 and 39 and filetypes are jpg
@@ -185,8 +192,8 @@ public class Board extends JPanel {
         }
 
         private static ImageIcon getIconForType (int type) {
-            if (type == -1) return new ImageIcon ("../Resources/empty.png");
-            return new ImageIcon ("../Resources/Tiles/" + IMAGES [type] + ".jpg");
+            if (type == -1) return new ImageIcon (Tile.class.getResource ("Resources/empty.png"));
+            return new ImageIcon (Tile.class.getResource ("Resources/Tiles/" + IMAGES [type]));
         }
 
         public int getType () {

@@ -1,16 +1,15 @@
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.io.File;
 
 public class Menu extends Container {
 
     //Buttons
-    private JToggleButton instructions = new JToggleButton (new ImageIcon (new File ("..\\Resources\\instructions.png").getPath ()));
-    private JToggleButton sound = new JToggleButton (new ImageIcon(new File ("..\\Resources\\soundOn.png").getPath ()));
+    private JToggleButton instructions = new JToggleButton (new ImageIcon (this.getClass ().getResource ("Resources/instructions.png")));
+    private JToggleButton sound = new JToggleButton (new ImageIcon (this.getClass ().getResource ("Resources/soundOn.png")));
     private JButton play = new JButton ("New Game");
-    private ImageIcon close = new ImageIcon ("../Resources/close.png");
-    private ImageIcon soundOff = new ImageIcon ("../Resources/soundOff.png");
+    private ImageIcon close = new ImageIcon (this.getClass ().getResource ("Resources/close.png"));
+    private ImageIcon soundOff = new ImageIcon (this.getClass ().getResource ("Resources/soundOff.png"));
 
     public Menu (App.AppFrame owner) {
         instructions.setSelectedIcon (close);

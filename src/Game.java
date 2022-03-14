@@ -2,29 +2,25 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 import java.io.IOException;
 
 //multiple levels, quit, pause, sound, hint, instructions
 
 public class Game extends Container {
-    //make some of these local if possible
-    //use cardLayout
-
-    private static final ImageIcon instructions = new ImageIcon ("./resources/instructions.png");
-    private static final ImageIcon close = new ImageIcon ("./resources/close.png");
-    private static final ImageIcon pause = new ImageIcon ("./resources/pause.png");
-    private static final ImageIcon resume = new ImageIcon ("./resources/resume.png");
-    private static final ImageIcon hint = new ImageIcon ("./resources/hint.png");
-    private static final ImageIcon soundOn = new ImageIcon ("./resources/soundOn.png");
-    private static final ImageIcon soundOff = new ImageIcon ("./resources/soundOff.png");
+    private static final ImageIcon instructions = new ImageIcon (Game.class.getResource ("Resources/instructions.png"));
+    private static final ImageIcon close = new ImageIcon (Game.class.getResource ("Resources/close.png"));
+    private static final ImageIcon pause = new ImageIcon (Game.class.getResource ("Resources/pause.png"));
+    private static final ImageIcon resume = new ImageIcon (Game.class.getResource ("Resources/resume.png"));
+    private static final ImageIcon hint = new ImageIcon (Game.class.getResource ("Resources/hint.png"));
+    private static final ImageIcon soundOn = new ImageIcon (Game.class.getResource ("Resources/soundOn.png"));
+    private static final ImageIcon soundOff = new ImageIcon (Game.class.getResource ("Resources/soundOff.png"));
 
     private final CardLayout cardLayout = new CardLayout ();
     private final JPanel screen = new JPanel (cardLayout);
-    private final Background shuffleScreen = new Background ("../Resources/background.jpg");
-    private final Background pauseScreen = new Background ("../Resources/background.jpg");
+    private final Background shuffleScreen = new Background ("Resources/background.jpg");
+    private final Background pauseScreen = new Background ("Resources/background.jpg");
     private final JScrollPane instructionsScreen = new Instructions ();
-    private final Background levelScreen = new Background ("../Resources/background.jpg");
+    private final Background levelScreen = new Background ("Resources/background.jpg");
     private static final String instructionsString = "Instructions";
     private static final String pauseString = "Pause";
     private static final String shuffleString = "Shuffle";
@@ -65,6 +61,7 @@ public class Game extends Container {
         playScreen = new Board (level);
         timeBar = new JProgressBar (0, (int) Timer.MAX_TIME);
         timer = new Timer ();
+        hintButton.setText (Integer.toString (hintsLeft));
 
         JPanel buttonPane = new JPanel ();
         pauseButton.setSelectedIcon (resume);
@@ -309,7 +306,7 @@ public class Game extends Container {
             setDoubleBuffered (true);
 
             try {
-                background = ImageIO.read (new File (imageFile));
+                background = ImageIO.read (this.getClass ().getResource (imageFile));
             } catch (IOException ignored) {
                 System.out.println ("File not found: " + imageFile);
             }
@@ -323,7 +320,7 @@ public class Game extends Container {
     }
 
     public class Timer {
-        public static final int MAX_TIME = 60000;
+        public static final int MAX_TIME = 600000;
         private long startTime;
         private long pauseTime;
         private boolean paused, started;
@@ -346,9 +343,9 @@ public class Game extends Container {
         }
 
         public int getTimeLeft () { //will throw error if startTime not initialized
-            if (! started) return (int) MAX_TIME;
+            if (!started) return (int) MAX_TIME;
             if (paused) return (int) (MAX_TIME - pauseTime + startTime);
-            else return (int) (MAX_TIME - startTime);
+            else return (int) (MAX_TIME - System.currentTimeMillis() + startTime);
         }
 
         public void resume () {

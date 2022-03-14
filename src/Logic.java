@@ -23,10 +23,10 @@ public class Logic {
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 board [i] [j] = count % tileTypes;
+                count++;
             }
         }
 
-        //shuffle
         for (int i = 0; i < pairsLeft; i++) switchRandom ();
         shuffle (); //just in case switching got rid of all the matches
     }
@@ -92,15 +92,33 @@ public class Logic {
     }
 
     public boolean hasMatches () {
-        for (int i = 0; i < pairsLeft * 2; i++) {
-            for (int j = 0; j < pairsLeft * 2; j++) {
-                Point tile1 = nthTile (i);
-                Point tile2 = nthTile (j);
-                if (match (tile1, tile2) != null) {
-                    hint = new Point [] {tile1, tile2};
-                    return true;
-                }
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                Point curPos = new Point (j, i);
+                if (getTile (curPos) == -1) continue;
+                if (canMatch (curPos, new Path (), curPos)) return true;
             }
+        }
+
+        return false;
+    }
+
+    private boolean canMatch (Point tile, Path history, Point curPos) {
+        if (!validPos (tile)) return false;
+
+        int size = history.size ();
+        int tileType = getTile (tile);
+
+        if (size > 3) return false;
+        if (validPos (curPos) && getTile (curPos) == tileType && size > 0) { //no way to return to the same tile in <=3 moves
+            hint = new Point [] {tile, curPos};
+            return true;
+        }
+
+        for (Step.Direction direction : Step.Direction.values ()) {
+            Point newPos = newPos (curPos, direction);
+            if (invalidPosForPath (newPos) && (!validPos (newPos) || getTile (newPos) != tileType)) continue;
+            if (canMatch (tile, history.addStep (direction), newPos)) return true;
         }
 
         return false;
@@ -112,20 +130,31 @@ public class Logic {
         return match (tile1, tile2, new Path ());
     }
 
-    //do not pass history greater that length 3
     private Path match (Point curPos, Point destinationPos, Path history) {
+        System.out.println ("CurPos: " + curPos);
         //keep this order!
-        if (history.size () >= 3) return null;
+        if (history.size () > 3) {
+            System.out.println ("More than three moves");
+            return null;
+        }
         if (curPos.equals (destinationPos)) return history;
-        if (invalidPosForPath (curPos)) return null;
+        if (invalidPosForPath (curPos) && history.size () != 0) {
+            System.out.println ("Invalid pos for path: (" + curPos.x + ", " + curPos.y + ")");
+            return null;
+        }
 
         Path path = null;
 
         for (Step.Direction direction: Step.Direction.values()) {
+            //preventing searching in the exact opposite direction
+            if (curPos.x == destinationPos.x && Math.signum (curPos.y - destinationPos.y) == direction.getY ()) continue;
+            if (curPos.y == destinationPos.y && Math.signum (curPos.x - destinationPos.x) == direction.getX ()) continue;
+
             Path newPath = match (newPos (curPos, direction), destinationPos, history.addStep (direction));
 
             //want the path that is shortest in terms of lines (most important, must be <= 3) and in terms of length
             if (newPath != null && newPath.size() <= 3 && (null == path || path.size () > newPath.size () || (path.size () == newPath.size () && path.length () > newPath.length ()))) {
+                System.out.println ("Path has been overwritten");
                 path = newPath;
             }
         }
@@ -135,9 +164,10 @@ public class Logic {
 
     //no guarantee that newPos is valid
     private Point newPos (Point curPos, Step.Direction direction) {
-        curPos.x += direction.getX ();
-        curPos.y += direction.getY ();
-        return curPos;
+        Point newPos = (Point) curPos.clone ();
+        newPos.x += direction.getX ();
+        newPos.y += direction.getY ();
+        return newPos;
     }
 
     //checks that there is empty space for a line to pass through
@@ -196,8 +226,6 @@ public class Logic {
     private void alignRight (boolean half) {
         alignHorizontal (width - 1, half ? (width - 1) / 2 : -1);
     }
-
-    //********************Clean up from here***********************************
 
     //not the method's responsibility to check that the start and end values are valid
     //will align up to end - 1

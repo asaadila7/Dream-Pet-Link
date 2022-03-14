@@ -17,15 +17,12 @@ public class App {
         public Game game;
         public Menu menu;
         private boolean volumeOn;
-        private boolean playing;
 
         public AppFrame () {
             super ("Dream Pet Link");
-            playing = false;
             volumeOn = false;
             menu = new Menu (this);
-            setContentPane (menu);
-            pack ();
+            setContainer (menu);
             setVisible (true);
             setResizable (false);
             this.setDefaultCloseOperation (WindowConstants.EXIT_ON_CLOSE);
@@ -33,12 +30,12 @@ public class App {
             this.addWindowListener (new WindowAdapter () { //window listener to pause game on minimize
                 @Override
                 public void windowDeiconified (WindowEvent e) {
-                    if (playing) game.resume ();
+                    if (game != null) game.resume ();
                 }
 
                 @Override
                 public void windowIconified (WindowEvent e) {
-                    if (playing) game.pause ();
+                    if (game != null) game.pause ();
                 }
             });
 
@@ -46,8 +43,7 @@ public class App {
             final Runnable r = new Runnable() {
                 public void run () {
                     while (true) {
-                        if (playing && game.gameOver ()) {
-                            playing = false;
+                        if (game != null && game.gameOver ()) {
                             volumeOn = game.hasSound();
                             game = null;
                             setContainer (menu);
@@ -66,12 +62,13 @@ public class App {
             setContentPane (container);
             pack ();
             revalidate ();
+            //repaint ();
         }
 
         public void startGame () {
-            playing = true;
             game = new Game ();
             setContainer (game);
+            pack ();
             game.startGame (volumeOn);
         }
     }
