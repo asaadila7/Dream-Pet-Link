@@ -6,9 +6,6 @@ import java.util.ArrayList;
 
 //time bonus when match found
 public class Board extends JPanel {
-    private static final Border hintBorder = BorderFactory.createLineBorder(Color.orange);
-    private static final Border selectBorder = BorderFactory.createLineBorder(Color.yellow); //optional int param to specify thickness of border in pixels
-    private static final Color lineColor = Color.yellow;
     private static final int tileSize = 30; //in pixels
     private static final int tileGap = 2;
 
@@ -68,31 +65,32 @@ public class Board extends JPanel {
             updateBoard ();
         }
         oldHint = logic.getHint ();
-        tiles [oldHint [0].y] [oldHint [0].x].setBorder (hintBorder);
-        tiles [oldHint [1].y] [oldHint [1].x].setBorder (hintBorder);
+        tiles [oldHint [0].y] [oldHint [0].x].setHintBorder ();
+        tiles [oldHint [1].y] [oldHint [1].x].setHintBorder ();
     }
 
     private void clearHintBorder () {
         if (oldHint != null) {
-            for (int i = 0; i < 2; i++) {
-                if (tiles [oldHint [i].y] [oldHint [i].x].getBorder () == hintBorder) tiles [oldHint [i].y] [oldHint [i].x].setBorder (null); //may not work: maybe try overriding paintBorder or set and empty border
-            }
+            for (int i = 0; i < 2; i++) tiles [oldHint [i].y] [oldHint [i].x].clearHintBorder ();
             oldHint = null;
         }
     }
 
     public void selectMatch (Point tile, Path path) {
-        System.out.println ("Match: (" + tile.x + ", " + tile.y + ")");
+        //System.out.println ("Match: (" + tile.x + ", " + tile.y + ")");
         clearHintBorder ();
-        tiles [tile.y] [tile.x].setBorder (selectBorder);
+        tiles [tile.y] [tile.x].setSelectBorder ();;
 
         //drawing line to connect the match
         //assuming no padding around the edges
         int startX = (int) ((lastClicked.x + 0.5) * tileSize) + (lastClicked.x * tileGap);
         int startY = (int) ((lastClicked.y + 0.5) * tileSize) + (lastClicked.y * tileGap);
         for (Step step : path) {
-            int endX = startX + (step.getDirection ().getX () * step.getSteps ());
-            int endY = startY + (step.getDirection ().getY () * step.getSteps ());
+            int xSteps = step.getDirection ().getX () * step.getSteps ();
+            int ySteps = step.getDirection ().getY () * step.getSteps ();
+            int endX = startX + xSteps * (tileSize + tileGap);
+            int endY = startY + ySteps * (tileSize + tileGap);
+            System.out.println ("Adding a line: startX = " + startX + ", startY = " + startY + ", endX = " + endX + ", endY = " + endY);
             lines.add (new Line (startX, startY, endX, endY));
             startX = endX;
             startY = endY;
@@ -105,32 +103,28 @@ public class Board extends JPanel {
             e.printStackTrace();
         }
 
-        lines.clear ();
+        //lines.clear ();
         repaint ();
 
         lastClicked = null;
     }
 
     public void selectNonMatch (Point tile) {
-        System.out.println ("Non match: (" + tile.x + ", " + tile.y + ")");
+        //System.out.println ("Non match: (" + tile.x + ", " + tile.y + ")");
         clearHintBorder ();
-        if (lastClicked != null) tiles [lastClicked.y] [lastClicked.x].setBorder (null);
-        tiles [tile.y] [tile.x].setBorder (selectBorder);
+        if (lastClicked != null) tiles [lastClicked.y] [lastClicked.x].clearBorder ();
+        tiles [tile.y] [tile.x].setSelectBorder ();;
         lastClicked = tile;
     }
 
     private void clickTile (int x, int y) {
         Point thisClick = new Point (x, y);
 
-        if (lastClicked == null) {
-            System.out.println ("Last clicked is null");
-            selectNonMatch (thisClick);
-        } else {
-            Path path = logic.match (lastClicked, thisClick);
-            if (path == null) {
-                System.out.println ("Path is null");
-                selectNonMatch (thisClick);
-            } else {
+        if (lastClicked == null) selectNonMatch (thisClick);
+        else {
+            Path path = logic.removeMatch (thisClick, lastClicked);
+            if (path == null) selectNonMatch (thisClick);
+            else {
                 selectMatch (thisClick, path);
                 if (!logic.hasMatches ()) logic.shuffle (); //should time be paused when shuffling?
                 updateBoard (); //should i move this out of if block?
@@ -139,10 +133,12 @@ public class Board extends JPanel {
     }
 
     @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent (g);
-        g.setColor (lineColor);
-        for (Line line: lines) g.drawLine (line.x1, line.y1, line.x2, line.y2);
+    public void paint (Graphics g) {
+        super.paint (g);
+        Graphics2D graphics = (Graphics2D) g;
+        graphics.setColor (Line.lineColor);
+        graphics.setStroke (new BasicStroke (3));
+        for (Line line: lines) graphics.drawLine (line.x1, line.y1, line.x2, line.y2);
     }
 
     class Handler implements ActionListener { //should I use an item listener instead?**************************
@@ -155,13 +151,14 @@ public class Board extends JPanel {
         }
     }
 
-    private static class Line{
+    private static class Line {
         final int x1;
         final int y1;
         final int x2;
         final int y2;
+        public static final Color lineColor = Color.black;
 
-        public Line(int x1, int y1, int x2, int y2) {
+        public Line (int x1, int y1, int x2, int y2) {
             this.x1 = x1;
             this.y1 = y1;
             this.x2 = x2;
@@ -170,6 +167,9 @@ public class Board extends JPanel {
     }
 
     class Tile extends JRadioButton {
+        private static final Border hintBorder = BorderFactory.createLineBorder (Color.orange, 5);
+        private static final Border selectBorder = BorderFactory.createLineBorder (Color.yellow, 5);
+        private static final Border emptyBorder = BorderFactory.createEmptyBorder (5, 5, 5, 5);
         static final int TYPES = 40;
         private static final String IMAGES [] = {"Black Cracks.jpg", "Blue Leaves.jpg", "Blue Swirl Painting.jpg", "Bricks.jpg", "Cabbage.jpg", "Cracked Ice.jpg", "Cracked Wall.jpg", "Dewdrops on Orange Flower.jpg", "Dewdrops on Purple Leaf.jpg", "Ferns.jpg", "Fire.jpg", "Golden Maple Leaves.jpg", "Green Cut Glass.png", "Grey Abstract.jpg", "Leaves on a Tree.jpg", "Lemon Bubbles.jpg", "Lemon Wedge.jpg", "Maple Leaves.jpg", "Mossy Rock Face.jpg", "Night Sky.jpg", "Orange Maple Leaves.jpg", "Orange Sunset.jpg", "Orange Swirl Painting.jpg", "Pink and Purple Smoke.jpg", "Pink Clouds.jpg", "Pink Flowers.jpg", "Purple Feathers.jpg", "Purple Flowers.jpg", "Purple Oil Painting.jpg", "Red Abstract Painting.jpg", "Red Cut Glass.png", "Red Leaf.jpg", "Rock Wall.jpg", "Sea Foam.jpg", "Smoke.jpg", "Sunset with Trees.jpg", "Tree Bark.jpg", "Virus.jpg", "White Silk.jpg", "White Stones.jpg"};
         private int type;
@@ -178,6 +178,7 @@ public class Board extends JPanel {
         public Tile (int type) {
             super (getIconForType (type));
             this.type = type;
+            setBorder (emptyBorder);
         }
 
         public void setType (int type) {
@@ -198,6 +199,29 @@ public class Board extends JPanel {
 
         public int getType () {
             return type;
+        }
+
+        public void setHintBorder () {
+            setBorder (hintBorder);
+            repaint ();
+        }
+
+        public void clearHintBorder () {
+            if (getBorder () == hintBorder) clearBorder ();
+        }
+
+        public void clearSelectBorder () {
+            if (getBorder () == selectBorder) clearBorder ();
+        }
+
+        public void clearBorder () {
+            setBorder (emptyBorder);
+            repaint ();
+        }
+
+        public void setSelectBorder () {
+            setBorder (selectBorder);
+            repaint ();
         }
     }
 }

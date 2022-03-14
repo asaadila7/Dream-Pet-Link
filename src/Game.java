@@ -147,39 +147,48 @@ public class Game extends Container {
 
         final Runnable runnable = new Runnable() {
             public void run () {
-                while (!hasQuit) {
-                    if (timer.getTimeLeft () <= 0) {
-                        if (level == 1) newLevel (false, true);
-                        else newLevel (false, false);
-                    } else if (playScreen.boardCleared ()) {
-                        if (level == 9) newLevel (true, true);
-                        else newLevel (true, false);
-                    } else if (playScreen.needsShuffling ()) {
-                        timer.pause ();
-                        cardLayout.show (screen, shuffleString);
-                        update (); //do i need this?
-                        try {
-                            Thread.sleep (1000);
-                        } catch (Exception e) {
-                            e.printStackTrace ();
-                        }
-                        cardLayout.show (screen, playString);
-                        timer.resume ();
-                        update (); //do i need this?
-                    }
-                }
+                while (!hasQuit) runGame ();
             }
         };
         new Thread (runnable).start ();
 
-        setLayout (new FlowLayout ());
-        add (levelLabel);
-        add (buttonPane);
-        add (timeBar);
+        setLayout (new BoxLayout (this, BoxLayout.Y_AXIS));
+        JPanel topPane = new JPanel ();
+        topPane.setLayout (new BoxLayout (topPane, BoxLayout.LINE_AXIS));
+        topPane.add (levelLabel);
+        topPane.add (buttonPane);
+        topPane.add (timeBar);
+        topPane.setBorder (BorderFactory.createEmptyBorder (20, 20, 20, 20));
+        add (topPane);
+        screen.setBorder (BorderFactory.createEmptyBorder (20, 20, 20, 20));
         add (screen);
         update ();
 
         timer.start ();
+    }
+
+    public void runGame () {
+        timeBar.setValue (timer.getTimeLeft ());
+        if (timer.getTimeLeft () <= 0) {
+            if (level == 1) newLevel (false, true);
+            else newLevel (false, false);
+        } else if (playScreen.boardCleared ()) {
+            if (level == 9) newLevel (true, true);
+            else newLevel (true, false);
+        } else if (playScreen.needsShuffling ()) {
+            timer.pause ();
+            cardLayout.show (screen, shuffleString);
+            update (); //do i need this?
+            try {
+                Thread.sleep (1000);
+            } catch (Exception e) {
+                e.printStackTrace ();
+            }
+            cardLayout.show (screen, playString);
+            timer.resume ();
+            update (); //do i need this?
+        }
+
     }
 
     private void newLevel (boolean won, boolean finished) {
@@ -275,7 +284,6 @@ public class Game extends Container {
     }
 
     private void update () {
-        timeBar.setValue (timer.getTimeLeft());
         revalidate ();
         repaint ();
     }

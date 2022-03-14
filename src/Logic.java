@@ -3,6 +3,8 @@ import java.util.ArrayList;
 
 //Changes: no longer handles time or returns a game state: has only a boolean to keep track of whether all the pairs have been matched
 //got rid of assertPlaying () as well. the calling class can handle that
+//maybe combine board and logic classes
+//before shuffling clear all borders
 
 public class Logic {
     public static final int height = 10, width = 14; //even numbers are nice
@@ -20,11 +22,12 @@ public class Logic {
         boardCleared = false;
 
         int count = 0;
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                board [i] [j] = count % tileTypes;
-                count++;
-            }
+
+        for (int i = 0; i < pairsLeft; i++) {
+            board [i / width] [i % width] = count;
+            board [(i + pairsLeft) / width] [(i + pairsLeft) % width] = count;
+            count++;
+            count %= tileTypes;
         }
 
         for (int i = 0; i < pairsLeft; i++) switchRandom ();
@@ -47,13 +50,15 @@ public class Logic {
     }
 
     //should i make this return a boolean?
-    public void removeMatch (Point tile1, Point tile2) { //should this return a boolean?
-        if (null == match (tile1, tile2)) return;
+    public Path removeMatch (Point tile1, Point tile2) { //should this return a boolean?
+        Path path = match (tile1, tile2);
+        if (null == path) return null;
         board [tile1.y] [tile1.x] = -1;
         board [tile2.y] [tile2.x] = -1;
         pairsLeft--;
         if (pairsLeft == 0) boardCleared = true;
         alignTiles ();
+        return path;
     }
 
     public void shuffle () {
@@ -61,28 +66,24 @@ public class Logic {
     }
 
     private void switchRandom () {
-        switchTiles (nthTile (random (0, pairsLeft * 2 - 1)), nthTile (random (0, pairsLeft * 2 - 1)));
+        switchTiles (randomTile (), randomTile ());
+    }
+
+    //returns random non-empty tile
+    private Point randomTile () {
+        int random = random (0, height * width - 1);
+        Point randomPoint = new Point (random % width, random / width);
+
+        while (getTile (randomPoint) == -1) {
+            random = random (0, height * width - 1);
+            randomPoint = new Point (random % width, random / width);
+        }
+
+        return randomPoint;
     }
 
     private static int random (int min, int max) {
         return (int) (Math.random () * (max - min + 1)) + min;
-    }
-
-    //returns point corresponding to nth non-empty tile
-    //will assume the board has at least n non-empty tiles
-    private Point nthTile (int index) {
-        int count = -1;
-
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                if (getTile (new Point (j, i)) != -1) {
-                    count++;
-                    if (count == index) return new Point (j, i);
-                }
-            }
-        }
-
-        return null;
     }
 
     private void switchTiles (Point tile1, Point tile2) {
@@ -124,24 +125,18 @@ public class Logic {
         return false;
     }
 
+    //if combining board anf logic classes, careful about calling the removeMatch function straight away
     //will return null if tiles cannot be matched, will otherwise return a list of steps to get from one tile to the other
-    public Path match (Point tile1, Point tile2) {
+    private Path match (Point tile1, Point tile2) {
         if (getTile (tile1) == -1 || tile1.equals (tile2) || getTile (tile1) != getTile (tile2)) return null;
         return match (tile1, tile2, new Path ());
     }
 
     private Path match (Point curPos, Point destinationPos, Path history) {
-        System.out.println ("CurPos: " + curPos);
         //keep this order!
-        if (history.size () > 3) {
-            System.out.println ("More than three moves");
-            return null;
-        }
+        if (history.size () > 3) return null;
         if (curPos.equals (destinationPos)) return history;
-        if (invalidPosForPath (curPos) && history.size () != 0) {
-            System.out.println ("Invalid pos for path: (" + curPos.x + ", " + curPos.y + ")");
-            return null;
-        }
+        if (invalidPosForPath (curPos) && history.size () != 0) return null;
 
         Path path = null;
 
@@ -154,7 +149,6 @@ public class Logic {
 
             //want the path that is shortest in terms of lines (most important, must be <= 3) and in terms of length
             if (newPath != null && newPath.size() <= 3 && (null == path || path.size () > newPath.size () || (path.size () == newPath.size () && path.length () > newPath.length ()))) {
-                System.out.println ("Path has been overwritten");
                 path = newPath;
             }
         }

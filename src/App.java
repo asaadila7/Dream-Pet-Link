@@ -24,7 +24,8 @@ public class App {
             menu = new Menu (this);
             setContainer (menu);
             setVisible (true);
-            setResizable (false);
+            setLocationRelativeTo(null);
+            //setResizable (false);
             this.setDefaultCloseOperation (WindowConstants.EXIT_ON_CLOSE);
 
             this.addWindowListener (new WindowAdapter () { //window listener to pause game on minimize
@@ -39,19 +40,20 @@ public class App {
                 }
             });
 
-            //runnable to run game
-            final Runnable r = new Runnable() {
+            final Runnable runnable = new Runnable() {
                 public void run () {
-                    while (true) {
-                        if (game != null && game.gameOver ()) {
-                            volumeOn = game.hasSound();
-                            game = null;
-                            setContainer (menu);
-                        }
-                    }
+                    while (true) run ();
                 }
             };
-            new Thread (r).start();
+            new Thread (runnable).start ();
+        }
+
+        public void run () {
+            if (game != null && game.gameOver ()) {
+                volumeOn = game.hasSound();
+                game = null;
+                setContainer (menu);
+            }
         }
 
         public void setSound (boolean isOn) {
@@ -62,7 +64,6 @@ public class App {
             setContentPane (container);
             pack ();
             revalidate ();
-            //repaint ();
         }
 
         public void startGame () {
