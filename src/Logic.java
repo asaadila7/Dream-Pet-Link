@@ -32,6 +32,14 @@ public class Logic {
 
         for (int i = 0; i < pairsLeft; i++) switchRandom ();
         shuffle (); //just in case switching got rid of all the matches
+
+        System.out.println ("Level " + level);
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < 14; j++) {
+                System.out.print (board [i] [j] + (board [i] [j] < 10 ? "  " : " "));
+            }
+            System.out.println ();
+        }
     }
 
     public boolean boardCleared () {
@@ -40,8 +48,7 @@ public class Logic {
 
     //will occasionally return null;
     public Point [] getHint () {
-        if (hint != null) return hint;
-        hasMatches (); //will set hint for me (or it will just stay null if there are no matches left)
+        if (hint == null || getTile (hint [0]) == -1 || !canMatch (hint [0], new Path (), hint [0])) hasMatches (); //will set hint for me (or it will just stay null if there are no matches left)
         return hint;
     }
 
@@ -62,6 +69,7 @@ public class Logic {
     }
 
     public void shuffle () {
+        for (int i = 0; i < 10; i++) switchRandom ();
         while (!hasMatches ()) switchRandom ();
     }
 
@@ -93,6 +101,8 @@ public class Logic {
     }
 
     public boolean hasMatches () {
+        if (hint != null && getTile (hint [0]) != -1 && canMatch (hint [0], new Path (), hint [0])) return true;
+        else hint = null;
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 Point curPos = new Point (j, i);
@@ -104,15 +114,13 @@ public class Logic {
         return false;
     }
 
+    //do NOT pass in empty tile or it will try to match another empty tile
     private boolean canMatch (Point tile, Path history, Point curPos) {
-        if (!validPos (tile)) return false;
-
-        int size = history.size ();
         int tileType = getTile (tile);
-
-        if (size > 3) return false;
-        if (validPos (curPos) && getTile (curPos) == tileType && size > 0) { //no way to return to the same tile in <=3 moves
-            hint = new Point [] {tile, curPos};
+        if (history.size () > 3) return false;
+        if (curPos.equals (tile) && history.size () > 0) return false; //loop back to same tile
+        if (validPos (curPos) && getTile (curPos) == tileType && !curPos.equals (tile)) {
+            hint = new Point [] {curPos, tile};
             return true;
         }
 

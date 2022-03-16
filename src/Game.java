@@ -4,10 +4,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 
-//multiple levels, quit, pause, sound, hint, instructions
+//if i click on an empty tile, it should get rid of my last selection for me
 
 public class Game extends Container {
-    private static final ImageIcon instructions = new ImageIcon (Game.class.getResource ("Resources/instructions.png"));
+    private static final ImageIcon instructions = new ImageIcon (Game.class.getResource ("Resources/about.png"));
     private static final ImageIcon close = new ImageIcon (Game.class.getResource ("Resources/close.png"));
     private static final ImageIcon pause = new ImageIcon (Game.class.getResource ("Resources/pause.png"));
     private static final ImageIcon resume = new ImageIcon (Game.class.getResource ("Resources/resume.png"));
@@ -15,20 +15,19 @@ public class Game extends Container {
     private static final ImageIcon soundOn = new ImageIcon (Game.class.getResource ("Resources/soundOn.png"));
     private static final ImageIcon soundOff = new ImageIcon (Game.class.getResource ("Resources/soundOff.png"));
 
-    private final CardLayout cardLayout = new CardLayout ();
-    private final JPanel screen = new JPanel (cardLayout);
-    private final Background shuffleScreen = new Background ("Resources/background.jpg");
-    private final Background pauseScreen = new Background ("Resources/background.jpg");
-    private final JScrollPane instructionsScreen = new Instructions ();
-    private final Background levelScreen = new Background ("Resources/background.jpg");
+    private final JPanel shuffleScreen = new JPanel ();
+    private final Background pauseScreen = new Background ("Resources/pause_background.png");
+    private final static About instructionsScreen = new About ();
     private static final String instructionsString = "Instructions";
     private static final String pauseString = "Pause";
     private static final String shuffleString = "Shuffle";
     private static final String playString = "Play";
     private static final String levelString = "Lost";
+    private final JPanel levelScreen = new JPanel ();
+    private final CardLayout cardLayout = new CardLayout ();
+    private final JPanel screen = new JPanel (cardLayout);
 
     private final JProgressBar timeBar;
-    private Timer timer;
 
     private final QuitHandler quitHandler = new QuitHandler ();
     private final StartLevelHandler startLevelHandler = new StartLevelHandler ();
@@ -51,17 +50,26 @@ public class Game extends Container {
     private int hintsLeft;
     private int level;
     private int [] score;
+    boolean inBetweenLevels;
+
+    static {
+        //do the static stuff here
+    }
 
     public Game () {
+        inBetweenLevels = false;
         hasQuit = false;
-        hintsLeft = 6;
+        hintsLeft = 20;
         level = 1;
         score = new int [9];
-        levelLabel = new JLabel (Integer.toString (level));
+        levelLabel = new JLabel ("Level " + level + "/9");
         playScreen = new Board (level);
-        timeBar = new JProgressBar (0, (int) Timer.MAX_TIME);
-        timer = new Timer ();
-        hintButton.setText (Integer.toString (hintsLeft));
+        timeBar = new JProgressBar (0, (int) Board.Timer.MAX_TIME);
+        hintButton.setText (hintsLeft + " hints");
+
+        JLabel shuffleLabel = new JLabel ("No More Matches");
+        shuffleLabel.setAlignmentY (JLabel.CENTER_ALIGNMENT);
+        shuffleScreen.add (shuffleLabel);
 
         JPanel buttonPane = new JPanel ();
         pauseButton.setSelectedIcon (resume);
@@ -78,6 +86,7 @@ public class Game extends Container {
 
         startButton.addActionListener (startLevelHandler);
         quitButton.addActionListener (quitHandler);
+        quitButton.setAlignmentY (JButton.CENTER_ALIGNMENT);
         pauseScreen.add (quitButton);
 
         screen.add (instructionsString, instructionsScreen);
@@ -95,7 +104,7 @@ public class Game extends Container {
                     if (hintsLeft > 0) {
                         playScreen.showHint ();
                         hintsLeft--;
-                        hintButton.setText (Integer.toString (hintsLeft));
+                        hintButton.setText (hintsLeft + " hints");
                     } //else?
                 }
             }
@@ -122,8 +131,8 @@ public class Game extends Container {
             new ItemListener () {
                 @Override
                 public void itemStateChanged(ItemEvent event) {
-                    if (soundButton.isSelected()) toggleSoundOn();
-                    else toggleSoundOff ();
+                    if (soundButton.isSelected()) toggleSoundOff();
+                    else toggleSoundOn ();
                 }
             }
         );
@@ -137,9 +146,12 @@ public class Game extends Container {
                         setButtonsEnabled (false, false, false, true);
                         cardLayout.show (screen, instructionsString);
                     } else {
-                        cardLayout.show (screen, playString);
+                        cardLayout.show (screen, pauseString);
                         setButtonsEnabled (true, true, true, true);
-                        if (!pauseButton.isSelected ()) resume ();
+                        if (!pauseButton.isSelected ()) {
+                            cardLayout.show (screen, playString);
+                            resume ();
+                        }
                     }
                 }
             }
@@ -162,31 +174,31 @@ public class Game extends Container {
         add (topPane);
         screen.setBorder (BorderFactory.createEmptyBorder (20, 20, 20, 20));
         add (screen);
-        update ();
 
-        timer.start ();
+        playScreen.timer.start ();
     }
 
     public void runGame () {
-        timeBar.setValue (timer.getTimeLeft ());
-        if (timer.getTimeLeft () <= 0) {
+        timeBar.setValue (playScreen.timer.getTimeLeft ());
+        if (!inBetweenLevels && playScreen.timer.getTimeLeft () <= 0) {
+            inBetweenLevels = true;
             if (level == 1) newLevel (false, true);
             else newLevel (false, false);
-        } else if (playScreen.boardCleared ()) {
+        } else if (!inBetweenLevels && playScreen.boardCleared ()) {
+            inBetweenLevels = true;
             if (level == 9) newLevel (true, true);
             else newLevel (true, false);
         } else if (playScreen.needsShuffling ()) {
-            timer.pause ();
+            System.out.println ("Shuffling");
+            playScreen.timer.pause ();
             cardLayout.show (screen, shuffleString);
-            update (); //do i need this?
             try {
                 Thread.sleep (1000);
             } catch (Exception e) {
                 e.printStackTrace ();
             }
             cardLayout.show (screen, playString);
-            timer.resume ();
-            update (); //do i need this?
+            playScreen.timer.resume ();
         }
 
     }
@@ -195,8 +207,8 @@ public class Game extends Container {
         String labelText = "You " + (won ? "won" : "lost") + " the " + (finished ? "game" : "level");
 
         if (won) {
-            timer.pause ();
-            score [level - 1] = timer.getTimeLeft ();
+            playScreen.timer.pause ();
+            score [level - 1] = playScreen.timer.getTimeLeft ();
 
             labelText += ". Your score is ";
             if (!finished) labelText += Integer.toString (score [level - 1]);
@@ -219,6 +231,7 @@ public class Game extends Container {
                 startButton.setText ("Start Next Level");
             } else {
                 startButton.setText ("Play Level Again");
+                //do i give them back the hints they lost in the level?
             }
         }
 
@@ -226,21 +239,25 @@ public class Game extends Container {
         setButtonsEnabled (false, false, false, false);
         newLevelLabel.setText (labelText);
         cardLayout.show (screen, levelString);
+        System.out.println ("New Level Screen");
     }
 
     public void startGame (boolean volumeOn) {
-        this.volumeOn = volumeOn;
+        //this.volumeOn = volumeOn;
+        soundButton.setSelected (!volumeOn);
         startLevel ();
     }
 
     private void startLevel () {
+        if (inBetweenLevels) {
+            inBetweenLevels = false;
+            playScreen = new Board (level);
+        }
         setButtonsEnabled (true, true, true, true);
+        levelLabel.setText ("Level " + level + "/9");
         if (volumeOn) playSound ();
-        playScreen.updateBoard ();
         cardLayout.show (screen, playString);
-        update ();
-        timer = new Timer ();
-        timer.start ();
+        playScreen.timer.start ();
     }
 
     private void setButtonsEnabled (boolean pause, boolean sound, boolean hint, boolean instructions) {
@@ -265,27 +282,33 @@ public class Game extends Container {
     }
 
     public void pause () {
-        timer.pause ();
+        playScreen.timer.pause ();
         stopSound ();
     }
 
     public void resume () {
         if (volumeOn) playSound();
-        timer.resume ();
+        playScreen.timer.resume ();
+    }
+
+    public boolean isPaused () {
+        return pauseButton.isSelected ();
     }
 
     private void playSound () {
-        sound = new Sound ();
-        sound.play ();
+        System.out.println ("Starting sound");
+        if (sound == null) {
+            sound = new Sound ();
+            sound.play ();
+        }
     }
 
     private void stopSound () {
-        if (sound != null) sound.shouldQuit = true;
-    }
-
-    private void update () {
-        revalidate ();
-        repaint ();
+        System.out.println ("Stopping sound");
+        if (sound != null) {
+            sound.shouldQuit = true;
+            sound = null;
+        }
     }
 
     public boolean hasSound () {
@@ -324,43 +347,6 @@ public class Game extends Container {
         protected void paintComponent (Graphics g)  {
             super.paintComponent (g);
             g.drawImage (background, 0, 0, getWidth (), getHeight (), background.getWidth (this) - getWidth (), background.getHeight (this) - getHeight (), background.getWidth (this), background.getHeight (this), this);
-        }
-    }
-
-    public class Timer {
-        public static final int MAX_TIME = 600000;
-        private long startTime;
-        private long pauseTime;
-        private boolean paused, started;
-
-        public Timer () {
-            paused = false;
-            started = false;
-        }
-
-        public void start () {
-            started = true;
-            startTime = System.currentTimeMillis ();
-        }
-
-        public void pause () {
-            if (!paused) {
-                pauseTime = System.currentTimeMillis ();
-                paused = true;
-            }
-        }
-
-        public int getTimeLeft () { //will throw error if startTime not initialized
-            if (!started) return (int) MAX_TIME;
-            if (paused) return (int) (MAX_TIME - pauseTime + startTime);
-            else return (int) (MAX_TIME - System.currentTimeMillis() + startTime);
-        }
-
-        public void resume () {
-            if (paused) {
-                startTime += System.currentTimeMillis () - pauseTime;
-                paused = false;
-            }
         }
     }
 }

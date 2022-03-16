@@ -1,17 +1,19 @@
-import java.io.File;
 import javax.sound.sampled.*;
 import java.io.IOException;
 
+//TODO: Sound is stopping after playing only once
+//can i make sound not have to start from beginning when paused and run again?
+
 public class Sound implements Runnable {
     //private String fileLocation = new File ("./Soundtrack.wav").getPath ();
-    private String fileLocation = "./Soundtrack.wav";
+    private String fileName = "Resources/bensound-tenderness.wav";
     private AudioInputStream audioInputStream = null;
     private SourceDataLine line = null;
     public volatile boolean shouldQuit; //true when music should stop playing
 
     public Sound () {
         try {
-            audioInputStream = AudioSystem.getAudioInputStream (new File(fileLocation));
+            audioInputStream = AudioSystem.getAudioInputStream (this.getClass ().getResource (fileName));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -33,6 +35,8 @@ public class Sound implements Runnable {
             playSound ();
         }
 
+        System.out.println ("Should quit");
+
         line.drain();
         line.close();
 
@@ -44,8 +48,8 @@ public class Sound implements Runnable {
     }
 
     public void play () {
-        Thread t = new Thread (this); //new thread to play audio synchronously
         shouldQuit = false;
+        Thread t = new Thread (this); //new thread to play audio synchronously
         t.start();
     }
 

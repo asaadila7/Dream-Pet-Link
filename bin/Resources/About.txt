@@ -1,0 +1,17 @@
+--ABOUT--
+
+This is my implementation of dream Pet Link. Go to my github (https://github.com/asaadila7/Dream-Pet-Link) for the credits.
+
+--HOW TO PLAY--
+
+//TIME//
+Clear the board before your time runs up. The time bar shows you how much time you have left; however much is left when you clear your board will be your score. If the time is up before you clear the board, you can choose to replay the level and continue with the game. Every time you find a match, you are awarded a small time bonus.
+
+//MATCHING//
+Matches must be matchable with <= 3 lines to connect the two (identical) tiles. The lines can extend into the borders of the game board, but may not pass through other occupied tiles.
+
+//HINTS//
+You will start with 6 hints and be given an additional three hints for every level that you win.
+
+//LEVELS//
+There are 9 levels. In the first two, the tiles don't move as you clear the board. In the upper levels, tiles will align against edges/middle of the board, according to the level.

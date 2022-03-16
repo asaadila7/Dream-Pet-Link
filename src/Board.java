@@ -4,10 +4,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 
-//time bonus when match found
+//sound played and lines drawn when match is found
+
 public class Board extends JPanel {
-    private static final int tileSize = 30; //in pixels
-    private static final int tileGap = 2;
+    public static final int tileSize = 40; //in pixels
 
     private Tile [] [] tiles;
     private Point oldHint [];
@@ -15,14 +15,17 @@ public class Board extends JPanel {
     private Logic logic;
     private ArrayList <Line> lines;
 
+    public Timer timer;
+
     public Board (int level) {
+        timer = new Timer ();
         logic = new Logic (Tile.TYPES, level);
         lines = new ArrayList <Line> ();
 
         tiles = new Tile [Logic.height] [Logic.width];
         Handler handler = new Handler ();
         ButtonGroup group = new ButtonGroup ();
-        setLayout (new GridLayout (Logic.height, Logic.width, tileGap, tileGap));
+        setLayout (new GridLayout (Logic.height, Logic.width));
 
         for (int i = 0; i < Logic.height; i++) {
             for (int j = 0; j < Logic.width; j++) {
@@ -40,7 +43,7 @@ public class Board extends JPanel {
     }
 
     public boolean needsShuffling () {
-        return !logic.hasMatches ();
+        return !logic.hasMatches () && !boardCleared ();
     }
 
     public void updateBoard () {
@@ -58,13 +61,16 @@ public class Board extends JPanel {
     }
 
     //do i need to update the board when i change borders?
-    public void showHint () {
+    public void showHint () { //should i clear the selection when i show the hint?
         clearHintBorder ();
-        if (logic.getHint () == null) {
+        oldHint = logic.getHint ();
+        if (oldHint == null) {
             logic.shuffle ();
             updateBoard ();
+            oldHint = logic.getHint ();
         }
-        oldHint = logic.getHint ();
+        System.out.println ("hint 1: (" + oldHint [0].x + ", " + oldHint [0].y + ")");
+        System.out.println ("hint 2: (" + oldHint [1].x + ", " + oldHint [1].y + ")");
         tiles [oldHint [0].y] [oldHint [0].x].setHintBorder ();
         tiles [oldHint [1].y] [oldHint [1].x].setHintBorder ();
     }
@@ -79,11 +85,11 @@ public class Board extends JPanel {
     public void selectMatch (Point tile, Path path) {
         //System.out.println ("Match: (" + tile.x + ", " + tile.y + ")");
         clearHintBorder ();
-        tiles [tile.y] [tile.x].setSelectBorder ();;
+        //tiles [tile.y] [tile.x].setSelectBorder ();;
 
         //drawing line to connect the match
         //assuming no padding around the edges
-        int startX = (int) ((lastClicked.x + 0.5) * tileSize) + (lastClicked.x * tileGap);
+        /*int startX = (int) ((lastClicked.x + 0.5) * tileSize) + (lastClicked.x * tileGap);
         int startY = (int) ((lastClicked.y + 0.5) * tileSize) + (lastClicked.y * tileGap);
         for (Step step : path) {
             int xSteps = step.getDirection ().getX () * step.getSteps ();
@@ -98,15 +104,18 @@ public class Board extends JPanel {
 
         repaint ();
         try {
-            Thread.sleep (500);
+            Thread.sleep (250);
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
 
         //lines.clear ();
-        repaint ();
-
+        //tiles [tile.y] [tile.x].clearBorder ();
+        tiles [lastClicked.y] [lastClicked.x].clearBorder ();
+        timer.giveTimeBonus();
         lastClicked = null;
+        if (needsShuffling()) logic.shuffle ();
+        updateBoard ();
     }
 
     public void selectNonMatch (Point tile) {
@@ -124,11 +133,7 @@ public class Board extends JPanel {
         else {
             Path path = logic.removeMatch (thisClick, lastClicked);
             if (path == null) selectNonMatch (thisClick);
-            else {
-                selectMatch (thisClick, path);
-                if (!logic.hasMatches ()) logic.shuffle (); //should time be paused when shuffling?
-                updateBoard (); //should i move this out of if block?
-            }
+            else selectMatch (thisClick, path);
         }
     }
 
@@ -167,18 +172,36 @@ public class Board extends JPanel {
     }
 
     class Tile extends JRadioButton {
-        private static final Border hintBorder = BorderFactory.createLineBorder (Color.orange, 5);
-        private static final Border selectBorder = BorderFactory.createLineBorder (Color.yellow, 5);
-        private static final Border emptyBorder = BorderFactory.createEmptyBorder (5, 5, 5, 5);
+        public static final int padding = 5;
+        public final static int borderWidth = 3;
+        private static final Border hintBorder;
+        private static final Border selectBorder;
+        private static final Border emptyBorder = BorderFactory.createEmptyBorder (padding, padding, padding, padding);
+        private static final String IMAGES [] = {"bat.png", "bee.png", "beetle.png", "buffalo.png", "bullfinch.png", "butterfly.png", "camel.png", "cat.png", "chameleon.png", "chicken.png", "clown-fish.png", "cow.png", "crab.png", "crocodile.png", "deer.png", "elephant.png", "flamingo.png", "fox.png", "frog.png", "giraffe.png", "hedgehog.png", "ladybug.png", "lion.png", "mouse.png", "owl.png", "panda.png", "parrot.png", "penguin.png", "pig.png", "platypus.png", "rabbit.png", "sheep.png", "sloth.png", "snake.png", "spider.png", "squid.png", "stingray.png", "turtle.png", "whale.png", "zebra.png"};
+        private static final ImageIcon icons [];
+        private static ImageIcon empty = new ImageIcon (Tile.class.getResource ("Resources/empty.png"));
         static final int TYPES = 40;
-        private static final String IMAGES [] = {"Black Cracks.jpg", "Blue Leaves.jpg", "Blue Swirl Painting.jpg", "Bricks.jpg", "Cabbage.jpg", "Cracked Ice.jpg", "Cracked Wall.jpg", "Dewdrops on Orange Flower.jpg", "Dewdrops on Purple Leaf.jpg", "Ferns.jpg", "Fire.jpg", "Golden Maple Leaves.jpg", "Green Cut Glass.png", "Grey Abstract.jpg", "Leaves on a Tree.jpg", "Lemon Bubbles.jpg", "Lemon Wedge.jpg", "Maple Leaves.jpg", "Mossy Rock Face.jpg", "Night Sky.jpg", "Orange Maple Leaves.jpg", "Orange Sunset.jpg", "Orange Swirl Painting.jpg", "Pink and Purple Smoke.jpg", "Pink Clouds.jpg", "Pink Flowers.jpg", "Purple Feathers.jpg", "Purple Flowers.jpg", "Purple Oil Painting.jpg", "Red Abstract Painting.jpg", "Red Cut Glass.png", "Red Leaf.jpg", "Rock Wall.jpg", "Sea Foam.jpg", "Smoke.jpg", "Sunset with Trees.jpg", "Tree Bark.jpg", "Virus.jpg", "White Silk.jpg", "White Stones.jpg"};
         private int type;
+
+        static {
+            icons = new ImageIcon [IMAGES.length];
+            for (int i = 0; i < IMAGES.length; i++) {
+                icons [i] = new ImageIcon (Tile.class.getResource ("Resources/Tiles/" + IMAGES [i]));
+            }
+
+            Border paddingBorder = BorderFactory.createEmptyBorder (padding - borderWidth, padding - borderWidth, padding - borderWidth, padding - borderWidth);
+            Border hint = BorderFactory.createLineBorder (Color.red, borderWidth);
+            Border select = BorderFactory.createLineBorder (Color.orange, borderWidth);
+            hintBorder = BorderFactory.createCompoundBorder (paddingBorder, hint);
+            selectBorder = BorderFactory.createCompoundBorder (paddingBorder, select);
+        }
 
         //will assume type is within 0 and 39 and filetypes are jpg
         public Tile (int type) {
             super (getIconForType (type));
             this.type = type;
             setBorder (emptyBorder);
+            setBorderPainted (true);
         }
 
         public void setType (int type) {
@@ -193,8 +216,8 @@ public class Board extends JPanel {
         }
 
         private static ImageIcon getIconForType (int type) {
-            if (type == -1) return new ImageIcon (Tile.class.getResource ("Resources/empty.png"));
-            return new ImageIcon (Tile.class.getResource ("Resources/Tiles/" + IMAGES [type]));
+            if (type == -1) return empty;
+            return icons [type];
         }
 
         public int getType () {
@@ -222,6 +245,47 @@ public class Board extends JPanel {
         public void setSelectBorder () {
             setBorder (selectBorder);
             repaint ();
+        }
+    }
+
+    public class Timer {
+        public static final int MAX_TIME = 600000;
+        private long startTime;
+        private long pauseTime;
+        private boolean paused, started;
+
+        public Timer () {
+            paused = false;
+            started = false;
+        }
+
+        public void start () {
+            started = true;
+            startTime = System.currentTimeMillis ();
+        }
+
+        public void pause () {
+            if (!paused) {
+                pauseTime = System.currentTimeMillis ();
+                paused = true;
+            }
+        }
+
+        public int getTimeLeft () { //will throw error if startTime not initialized
+            if (!started) return (int) MAX_TIME;
+            if (paused) return (int) (MAX_TIME - pauseTime + startTime);
+            else return (int) (MAX_TIME - System.currentTimeMillis() + startTime);
+        }
+
+        public void resume () {
+            if (paused) {
+                startTime += System.currentTimeMillis () - pauseTime;
+                paused = false;
+            }
+        }
+
+        public void giveTimeBonus () {
+            if (started) startTime += 500;
         }
     }
 }

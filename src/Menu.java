@@ -2,23 +2,28 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 
+//maybe realign the buttons horizontally when the instructions are displayed
+
 public class Menu extends Container {
 
     //Buttons
-    private JToggleButton instructions = new JToggleButton (new ImageIcon (this.getClass ().getResource ("Resources/instructions.png")));
+    private JToggleButton instructions = new JToggleButton (new ImageIcon (this.getClass ().getResource ("Resources/about.png")));
     private JToggleButton sound = new JToggleButton (new ImageIcon (this.getClass ().getResource ("Resources/soundOn.png")));
     private JButton play = new JButton ("New Game");
     private ImageIcon close = new ImageIcon (this.getClass ().getResource ("Resources/close.png"));
     private ImageIcon soundOff = new ImageIcon (this.getClass ().getResource ("Resources/soundOff.png"));
 
-    public Menu (App.AppFrame owner) {
+    public Menu (App.AppFrame owner, boolean volumeOn) {
         instructions.setSelectedIcon (close);
         instructions.addItemListener (
             new ItemListener () {
                 @Override
                 public void itemStateChanged (ItemEvent event) {
-                    if (instructions.isSelected ()) add (new Instructions ());
+                    if (instructions.isSelected ()) add (new About (), BorderLayout.SOUTH);
                     else remove (1);
+                    revalidate ();
+                    owner.pack ();
+                    owner.setLocationRelativeTo (null);
                 }
             }
         );
@@ -28,11 +33,12 @@ public class Menu extends Container {
             new ItemListener () {
                 @Override
                 public void itemStateChanged (ItemEvent event) {
-                    if (sound.isSelected ()) owner.setSound (true);
-                    else owner.setSound (false);
+                    if (sound.isSelected ()) owner.setSound (false);
+                    else owner.setSound (true);
                 }
             }
         );
+        setSoundOn (volumeOn);
 
         play.addActionListener (
             new ActionListener () {
@@ -43,10 +49,7 @@ public class Menu extends Container {
             }
         );
 
-        setLayout(new BorderLayout());
-
-        JPanel backgroundPanel = new JPanel ();
-        backgroundPanel.setLayout (new BorderLayout());
+        setLayout (new BorderLayout());
 
         //Button Layout
         JPanel buttonPane = new JPanel();
@@ -62,7 +65,10 @@ public class Menu extends Container {
         buttonPane.add(sound);
         buttonPane.setOpaque(false); //set transparent
 
-        backgroundPanel.add(buttonPane, BorderLayout.CENTER);
-        add (backgroundPanel);
+        add (buttonPane, BorderLayout.CENTER);
+    }
+
+    public void setSoundOn (boolean on) {
+        sound.setSelected (!on);
     }
 }

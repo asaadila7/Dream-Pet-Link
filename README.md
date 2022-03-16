@@ -1,18 +1,38 @@
-## Getting Started
+## Dream Pet Link
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
 
-## Folder Structure
+Remake of [Dream Pet Link](https://www.crazygames.com/game/dream-pet-link).
 
-The workspace contains two folders by default, where:
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+## Credits
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+[Cartoon Vectors by Vecteezy](https://www.vecteezy.com/free-vector/cartoon)
 
-## Dependency Management
+[Animals icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/animals)
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+[Speaker icons created by Pixel perfect - Flaticon](https://www.flaticon.com/free-icons/speaker)
+
+[Doubt icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/doubt)
+
+[Close icons created by inkubators - Flaticon](https://www.flaticon.com/free-icons/close)
+
+[Pause icons created by Kiranshastry - Flaticon](https://www.flaticon.com/free-icons/pause)
+
+[Pause icons created by IYAHICON - Flaticon](https://www.flaticon.com/free-icons/pause)
+
+[Rounded square icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/rounded-square)
+
+[Magnifying glass icons created by Ayub Irawan - Flaticon](https://www.flaticon.com/free-icons/magnifying-glass)
+
+
+## Heading
+
+
+- Bullet point
+
+`Code Formatting`
+
+> Grey indented text
+
+[link](www.google.com)
