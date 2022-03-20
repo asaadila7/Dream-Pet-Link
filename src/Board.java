@@ -55,8 +55,6 @@ public class Board extends JPanel {
                 }
             }
         }
-
-        //revalidate ();***********************************
         repaint ();
     }
 

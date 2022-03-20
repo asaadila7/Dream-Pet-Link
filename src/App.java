@@ -73,8 +73,8 @@ public class App {
         public void startGame () {
             game = new Game ();
             setContainer (game);
-            pack ();
             game.startGame (volumeOn);
+            pack ();
         }
     }
 

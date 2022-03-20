@@ -43,29 +43,28 @@ public class Game extends Container {
     private final JLabel newLevelLabel = new JLabel ();
 
     private Board playScreen;
-    private Sound sound;
+    private final Sound sound = new Sound ();
 
     private boolean hasQuit;
-    private boolean volumeOn;
     private int hintsLeft;
     private int level;
     private int [] score;
-    boolean inBetweenLevels;
+    private boolean inBetweenLevels;
 
     public Game () {
-        sound = new Sound (); //********************************************************
         inBetweenLevels = false;
         hasQuit = false;
-        hintsLeft = 20;
-        level = 1;
+        hintsLeft = 100; //*************************
+        level = 3; //*******************
         score = new int [9];
+        score [0] = score [1] = 0; //*****************
         levelLabel = new JLabel ("Level " + level + "/9");
         playScreen = new Board (level);
         timeBar = new JProgressBar (0, (int) Board.Timer.MAX_TIME);
         hintButton.setText (hintsLeft + " hints");
 
         JLabel shuffleLabel = new JLabel ("No More Matches");
-        shuffleLabel.setAlignmentY (JLabel.CENTER_ALIGNMENT);
+        shuffleLabel.setAlignmentY (JLabel.CENTER_ALIGNMENT); //Not working
         shuffleScreen.add (shuffleLabel);
 
         JPanel buttonPane = new JPanel ();
@@ -83,16 +82,14 @@ public class Game extends Container {
 
         startButton.addActionListener (startLevelHandler);
         quitButton.addActionListener (quitHandler);
-        quitButton.setAlignmentY (JButton.CENTER_ALIGNMENT);
+        quitButton.setAlignmentY (JButton.CENTER_ALIGNMENT);//not working
         pauseScreen.add (quitButton);
 
         screen.add (instructionsString, instructionsScreen);
-        screen.add (playString, playScreen);
         screen.add (pauseString, pauseScreen);
         screen.add (shuffleString, shuffleScreen);
         screen.add (levelString, levelScreen);
         add (screen);
-        cardLayout.show (screen, playString);
 
         hintButton.addActionListener (
             new ActionListener () {
@@ -128,8 +125,8 @@ public class Game extends Container {
             new ItemListener () {
                 @Override
                 public void itemStateChanged(ItemEvent event) {
-                    if (soundButton.isSelected()) toggleSoundOff();
-                    else toggleSoundOn ();
+                    if (soundButton.isSelected()) sound.pause ();
+                    else sound.play ();
                 }
             }
         );
@@ -233,27 +230,26 @@ public class Game extends Container {
             }
         }
 
-        stopSound ();
+        sound.pause ();
         setButtonsEnabled (false, false, false, false);
         newLevelLabel.setText (labelText);
         cardLayout.show (screen, levelString);
         System.out.println ("New Level Screen");
+        System.out.println ("Won: " + won + "\nfinished: " + finished);
     }
 
     public void startGame (boolean volumeOn) {
-        //this.volumeOn = volumeOn;
         soundButton.setSelected (!volumeOn);
         startLevel ();
     }
 
     private void startLevel () {
-        if (inBetweenLevels) {
-            inBetweenLevels = false;
-            playScreen = new Board (level);
-        }
+        playScreen = new Board (level);
+        screen.add (playString, playScreen);
+        inBetweenLevels = false;
         setButtonsEnabled (true, true, true, true);
         levelLabel.setText ("Level " + level + "/9");
-        if (volumeOn) playSound ();
+        if (!soundButton.isSelected ()) sound.play ();
         cardLayout.show (screen, playString);
         playScreen.timer.start ();
     }
@@ -269,23 +265,13 @@ public class Game extends Container {
         return hasQuit;
     }
 
-    private void toggleSoundOn () {
-        volumeOn = true;
-        playSound ();
-    }
-
-    private void toggleSoundOff () {
-        volumeOn = false;
-        stopSound ();
-    }
-
     public void pause () {
         playScreen.timer.pause ();
-        stopSound ();
+        sound.pause ();
     }
 
     public void resume () {
-        if (volumeOn) playSound();
+        if (!soundButton.isSelected ()) sound.play ();
         playScreen.timer.resume ();
     }
 
@@ -293,26 +279,8 @@ public class Game extends Container {
         return pauseButton.isSelected ();
     }
 
-    private void playSound () {
-        System.out.println ("Starting sound");
-        /*if (sound == null) {
-            sound = new Sound ();
-            sound.play ();
-        }*/
-        sound.play ();
-    }
-
-    private void stopSound () {
-        System.out.println ("Stopping sound");
-        /*if (sound != null) {
-            sound.shouldQuit = true;
-            sound = null;
-        }*/
-        sound.pause ();
-    }
-
     public boolean hasSound () {
-        return volumeOn;
+        return !soundButton.isSelected ();
     }
 
     class StartLevelHandler implements ActionListener {

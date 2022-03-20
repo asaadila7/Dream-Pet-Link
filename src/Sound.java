@@ -2,7 +2,7 @@ import javax.sound.sampled.*;
 import java.io.IOException;
 
 public class Sound {
-    private static final String fileName = "Resources/russian-land-loop-88761.wav";
+    private static final String fileName = "Resources/bensound-tenderness.wav";
     private AudioInputStream audioInputStream = null;
     private Clip line = null;
 
