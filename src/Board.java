@@ -7,7 +7,7 @@ import java.util.ArrayList;
 //sound played and lines drawn when match is found
 
 public class Board extends JPanel {
-    public static final int tileSize = 40; //in pixels
+    private static final int tileSize = 40; //in pixels
 
     private Tile [] [] tiles;
     private Point oldHint [];

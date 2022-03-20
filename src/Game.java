@@ -52,11 +52,8 @@ public class Game extends Container {
     private int [] score;
     boolean inBetweenLevels;
 
-    static {
-        //do the static stuff here
-    }
-
     public Game () {
+        sound = new Sound (); //********************************************************
         inBetweenLevels = false;
         hasQuit = false;
         hintsLeft = 20;
@@ -160,6 +157,7 @@ public class Game extends Container {
         final Runnable runnable = new Runnable() {
             public void run () {
                 while (!hasQuit) runGame ();
+                sound.dispose ();
             }
         };
         new Thread (runnable).start ();
@@ -297,18 +295,20 @@ public class Game extends Container {
 
     private void playSound () {
         System.out.println ("Starting sound");
-        if (sound == null) {
+        /*if (sound == null) {
             sound = new Sound ();
             sound.play ();
-        }
+        }*/
+        sound.play ();
     }
 
     private void stopSound () {
         System.out.println ("Stopping sound");
-        if (sound != null) {
+        /*if (sound != null) {
             sound.shouldQuit = true;
             sound = null;
-        }
+        }*/
+        sound.pause ();
     }
 
     public boolean hasSound () {

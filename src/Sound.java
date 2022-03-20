@@ -1,42 +1,32 @@
 import javax.sound.sampled.*;
 import java.io.IOException;
 
-//TODO: Sound is stopping after playing only once
-//can i make sound not have to start from beginning when paused and run again?
-
-public class Sound implements Runnable {
-    //private String fileLocation = new File ("./Soundtrack.wav").getPath ();
-    private String fileName = "Resources/bensound-tenderness.wav";
+public class Sound {
+    private static final String fileName = "Resources/russian-land-loop-88761.wav";
     private AudioInputStream audioInputStream = null;
-    private SourceDataLine line = null;
-    public volatile boolean shouldQuit; //true when music should stop playing
+    private Clip line = null;
 
     public Sound () {
         try {
+            line = AudioSystem.getClip ();
             audioInputStream = AudioSystem.getAudioInputStream (this.getClass ().getResource (fileName));
+            line.open (audioInputStream);
+            line.setLoopPoints (0, -1);
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        AudioFormat audioFormat = audioInputStream.getFormat(); //get file format
-
-        try {
-            line = (SourceDataLine) AudioSystem.getLine (new DataLine.Info (SourceDataLine.class, audioFormat));
-            line.open (audioFormat);
-        } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace ();
         }
     }
 
-    public void run () {
+    public void play () {
+        line.loop (Clip.LOOP_CONTINUOUSLY);
         line.start ();
+    }
 
-        while (!shouldQuit) {
-            playSound ();
-        }
+    public void pause () {
+        line.stop ();
+    }
 
-        System.out.println ("Should quit");
-
+    public void dispose () {
         line.drain();
         line.close();
 
@@ -44,33 +34,6 @@ public class Sound implements Runnable {
             audioInputStream.close ();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void play () {
-        shouldQuit = false;
-        Thread t = new Thread (this); //new thread to play audio synchronously
-        t.start();
-    }
-
-    private void playSound () {
-        int nBytesRead = 0;
-        byte [] abData = new byte [500];
-
-        while (nBytesRead != -1) {
-            if (shouldQuit) {
-                return;
-            }
-
-            try {
-                nBytesRead = audioInputStream.read (abData, 0, abData.length);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            if (nBytesRead >= 0) {
-                line.write (abData, 0, nBytesRead);
-            }
         }
     }
 }

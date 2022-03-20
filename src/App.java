@@ -3,6 +3,8 @@ import javax.swing.WindowConstants;
 import java.awt.event.*;
 import java.awt.*;
 
+//ask bout pass by value vs. pass by reference in java
+
 public class App {
     static class AppFrame extends JFrame {
         public Game game;
