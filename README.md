@@ -3,6 +3,7 @@
 
 Remake of [Dream Pet Link](https://www.crazygames.com/game/dream-pet-link).
 
+Click on runMe.bat in the src folder (not the one outside of all the folders) to play.
 
 ## Credits
 
