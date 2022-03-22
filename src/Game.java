@@ -55,9 +55,8 @@ public class Game extends Container {
         inBetweenLevels = false;
         hasQuit = false;
         hintsLeft = 100; //*************************
-        level = 3; //*******************
+        level = 1;
         score = new int [9];
-        score [0] = score [1] = 0; //*****************
         levelLabel = new JLabel ("Level " + level + "/9");
         playScreen = new Board (level);
         timeBar = new JProgressBar (0, (int) Board.Timer.MAX_TIME);
