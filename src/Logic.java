@@ -1,10 +1,10 @@
 import java.awt.Point;
-import java.util.ArrayList;
 
 //Changes: no longer handles time or returns a game state: has only a boolean to keep track of whether all the pairs have been matched
 //got rid of assertPlaying () as well. the calling class can handle that
 //maybe combine board and logic classes
 //before shuffling clear all borders
+//point can be translated instead of making new points all the time. maybe come back and clean this up later
 
 public class Logic {
     public static final int height = 10, width = 14; //even numbers are nice
@@ -32,14 +32,6 @@ public class Logic {
 
         for (int i = 0; i < pairsLeft; i++) switchRandom ();
         shuffle (); //just in case switching got rid of all the matches
-
-        System.out.println ("Level " + level);
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < 14; j++) {
-                System.out.print (board [i] [j] + (board [i] [j] < 10 ? "  " : " "));
-            }
-            System.out.println ();
-        }
     }
 
     public boolean boardCleared () {
@@ -229,19 +221,26 @@ public class Logic {
         alignHorizontal (width - 1, half ? (width - 1) / 2 : -1);
     }
 
+    private boolean alignHorizontalLine (Point start, int direction) {
+        int k = start.x + direction;
+        Point point = new Point (k, start.y);
+        while (validPos (point) && getTile (point) == -1) {
+            k += direction;
+            point.translate (direction, 0);
+        }
+        if (!validPos (point)) return false;
+        switchTiles (start, point);
+        return true;
+    }
+
     //not the method's responsibility to check that the start and end values are valid
     //will align up to end - 1
     private void alignHorizontal (int start, int end) {
         int direction = (int) Math.signum (end - start);
-
         for (int i = 0; i < height; i++) {
             for (int j = start; j != end; j += direction) {
-                if (getTile (new Point (j, i)) == -1) {
-                    int k = j + direction;
-                    while (k != end && getTile (new Point (k, i)) == -1) k += direction;
-                    if (k == end) break;
-                    else switchTiles (new Point (k, i), new Point (j, i));
-                }
+                Point point = new Point (j, i);
+                if (getTile (point) == -1) alignHorizontalLine (point, direction);
             }
         }
     }
@@ -254,113 +253,78 @@ public class Logic {
         alignVertical (height - 1, half ? (height - 1) / 2: -1);
     }
 
+    private boolean alignVerticalLine (Point start, int direction) {
+        int k = start.y + direction;
+        Point point = new Point (start.x, k);
+        while (validPos (point) && getTile (point) == -1) {
+            k += direction;
+            point.translate (0, direction);
+        }
+        if (!validPos (point)) return false;
+        switchTiles (start, point);
+        return true;
+    }
+
     //not the method's responsibility to check that the start and end values are valid
     private void alignVertical (int start, int end) {
         int direction = (int) Math.signum (end - start);
 
         for (int i = 0; i < width; i++) {
             for (int j = start; j != end; j += direction) {
-                if (getTile (new Point (i, j)) == -1) {
-                    int k = j + direction;
-                    while (k != end && getTile (new Point (i, k)) == -1) k += direction;
-                    if (k == end) break;
-                    else switchTiles (new Point (i, k), new Point (i, j));
-                }
+                Point point = new Point (i, j);
+                if (getTile (point) == -1) alignVerticalLine (point, direction);
             }
         }
     }
 
-    /* alternate alignMiddle that fixes all the holes in order before it goes back around to fix the holes caused by fixing the old holes
-    //returns outermost gap
-    private ArrayList <Point> findHoles () {
-        ArrayList <Point> holes = new ArrayList <Point> ();
-
+    private void printBoard () {
         for (int i = 0; i < height; i++) {
-            ArrayList <Point> outerRing = nthOuterRing (i);
-
-            for (Point point : outerRing) {
-                if (hole (point)) holes.add (point);
+            for (int j = 0; j < 14; j++) {
+                System.out.print (board [i] [j] + (board [i] [j] < 10  && board [i] [j] == -1 ? "  " : " "));
             }
+            System.out.println ();
         }
+    }
 
-        return holes;
+    private boolean alignLine (boolean vertical, Point start, int direction) {
+        if (vertical) return alignVerticalLine (start, direction);
+        return alignHorizontalLine (start, direction);
     }
 
     private void alignMiddle () {
-        ArrayList <Point> holes = findHoles ();
-
-        while (holes.size () != 0) {
-            for (Point point : holes) {
-                //will pick horizontal align over vertical align if both are the same
-                if (Math.abs ((float) (height - 1) / 2 - point.y) / (height / 2) < Math.abs ((float) (width - 1) / 2 - point.x) / (width / 2)) {
-                    if (point.y < height / 2) alignVertical (point.y, 0);
-                    else alignVertical (point.y, height);
-                } else {
-                    if (point.x < width / 2) alignHorizontal (point.x, 0);
-                    else alignHorizontal (point.x, width);
-                }
-            }
-
-            holes = findHoles ();
-        }
-    }
-    */
-
-    private void alignMiddle () {
-        Point hole = findOuterMostHole ();
+        Point hole = findHole ();
+        boolean madeNoChanges = false, vertical = true;
+        System.out.println ("Hole is null: " + (hole == null));
 
         while (hole != null) {
-            if (Math.abs ((float) (height - 1) / 2 - hole.y) / height < Math.abs ((float) (width - 1) / 2 - hole.x) / width) {
-                if (hole.y < height / 2) alignVertical (hole.y, -1);
-                else alignVertical (hole.y, height);
-            } else {
-                if (hole.x < width / 2) alignHorizontal (hole.x, -1);
-                else alignHorizontal (hole.x, width);
+            if (madeNoChanges) vertical = !vertical; //try aligning vertical if horizontal didn't work last time, and vice versa
+            else {
+                if (Math.abs ((float) (height - 1) / 2 - hole.y) / height < Math.abs ((float) (width - 1) / 2 - hole.x) / width) vertical = true;
+                else vertical = false;
             }
+
+            int direction;
+            if ((vertical && hole.y < height / 2) || (!vertical && hole.x < width / 2)) direction = -1;
+            else direction = 1;
+            madeNoChanges = !alignLine (vertical, hole, direction);
+
+            printBoard ();
+            hole = findHole ();
+            System.out.println ("Hole is null: " + (hole == null));
         }
     }
 
-    private Point findOuterMostHole () {
+    private Point findHole () {
         for (int i = 0; i < height; i++) {
-            ArrayList <Point> outerRing = nthOuterRing (i);
-            for (Point point: outerRing) {
-                if (hole (point)) return point;
+            for (int j = 0; j < width; j++) {
+                if (getTile (new Point (j, i)) == -1) {
+                    int vDir = i < height / 2 ? -1 : 1, hDir = j < width / 2 ? -1 : 1;
+                    for (Point point = new Point (j, i + vDir); validPos (point); point.translate (0, vDir)) if (getTile (point) != -1) return new Point (j, i);
+                    for (Point point = new Point (j + hDir, i); validPos (point); point.translate (hDir, 0)) if (getTile (point) != -1) return new Point (j, i);
+                }
             }
         }
 
         return null;
-    }
-
-    private boolean hole (Point point) {
-        if (getTile (point) != -1) return false;
-
-        int count = 0;
-
-        for (Step.Direction direction: Step.Direction.values ()) {
-            Point step = newPos (point, direction);
-            if (!validPos (step) || getTile (step) == -1) count++;
-            if (count >= 3) return true;
-        }
-
-        return false;
-    }
-
-    private ArrayList <Point> nthOuterRing (int n) {
-        ArrayList <Point> ring = new ArrayList <Point> ();
-
-        //check this
-        for (int j = n; j < height - n; j += height - 1 - (2 * n)) {
-            for (int i = n; i < width - n; i++) {
-                ring.add (new Point (i, j));
-            }
-        }
-
-        for (int j = n; j < width - n; j += width - 1 - (2 * n)) {
-            for (int i = n + 1; i < height - n - 1; i++) {
-                ring.add (new Point (j, i));
-            }
-        }
-
-        return ring;
     }
 }

@@ -54,7 +54,7 @@ public class Game extends Container {
     public Game () {
         inBetweenLevels = false;
         hasQuit = false;
-        hintsLeft = 100; //*************************
+        hintsLeft = 6;
         level = 1;
         score = new int [9];
         levelLabel = new JLabel ("Level " + level + "/9");

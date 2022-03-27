@@ -283,7 +283,7 @@ public class Board extends JPanel {
         }
 
         public void giveTimeBonus () {
-            if (started) startTime += 500;
+            if (started) startTime += 1000;
         }
     }
 }

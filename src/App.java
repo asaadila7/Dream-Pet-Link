@@ -4,6 +4,7 @@ import java.awt.event.*;
 import java.awt.*;
 
 //ask bout pass by value vs. pass by reference in java
+//TODO: why is the game making my computer heat up?
 
 public class App {
     static class AppFrame extends JFrame {
