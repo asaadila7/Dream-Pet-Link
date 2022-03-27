@@ -1,9 +1,17 @@
 ## Dream Pet Link
 
 
-Remake of [Dream Pet Link](https://www.crazygames.com/game/dream-pet-link).
+Remake of [Dream Pet Link](https://www.crazygames.com/game/dream-pet-link). Written using Java version 18.
 
-Click on runMe.bat in the src folder (not the one outside of all the folders) to play.
+## How to Run
+
+Windows:
+ - Click on runMe.bat in the src folder (not the one outside of all the folders) to play.
+
+ Mac:
+ - Open terminal
+ - cd to the location of the JAR file
+ - type the following command into your terminal: `java -jar "DreamPetLink.jar"`
 
 ## Credits
 
@@ -25,15 +33,3 @@ Click on runMe.bat in the src folder (not the one outside of all the folders) to
 [Rounded square icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/rounded-square)
 
 [Magnifying glass icons created by Ayub Irawan - Flaticon](https://www.flaticon.com/free-icons/magnifying-glass)
-
-
-## Heading
-
-
-- Bullet point
-
-`Code Formatting`
-
-> Grey indented text
-
-[link](www.google.com)
