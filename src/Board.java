@@ -8,6 +8,7 @@ import java.util.ArrayList;
 
 public class Board extends JPanel {
     private static final int tileSize = 40; //in pixels
+    private static final int tileGap = 
 
     private Tile [] [] tiles;
     private Point oldHint [];
@@ -167,10 +168,13 @@ public class Board extends JPanel {
             this.x2 = x2;
             this.y2 = y2;
         }
+
+        private int scale (int n) {
+            return (int) ((n + 0.5) * tileSize) + (n * tileGap);
+        }
     }
 
     class Tile extends JRadioButton {
-        public static final int padding = 5;
         public final static int borderWidth = 3;
         private static final Border hintBorder;
         private static final Border selectBorder;
@@ -187,6 +191,7 @@ public class Board extends JPanel {
                 icons [i] = new ImageIcon (Tile.class.getResource ("Resources/Tiles/" + IMAGES [i]));
             }
 
+            int padding = tileGap / 2;
             Border paddingBorder = BorderFactory.createEmptyBorder (padding - borderWidth, padding - borderWidth, padding - borderWidth, padding - borderWidth);
             Border hint = BorderFactory.createLineBorder (Color.red, borderWidth);
             Border select = BorderFactory.createLineBorder (Color.orange, borderWidth);
